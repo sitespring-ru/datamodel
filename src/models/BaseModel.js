@@ -1,37 +1,18 @@
-import {extend, forEach, isEmpty, isEqual} from "lodash";
+import {extend, isEmpty, keys, pick} from "lodash";
 import BaseClass from "./BaseClass";
 import BaseProxy from "./BaseProxy";
 import validate from "validate.js";
+import {computed, reactive, ref} from "vue";
 
 
 /**
- * Базовая модель поддерживающая аттрибуты, валидацию, прокси для запросов к серверу
+ * Базовая модель  использующая vue 3 composition api
+ * поддерживающая аттрибуты, валидацию, прокси для запросов к серверу
  * @author Evgeny Shevtsov, info@sitespring.ru
  * @homepage https://sitespring.ru
  * @licence Proprietary
  */
 export default class BaseModel extends BaseClass {
-    /**
-     * @event BaseModel#EVENT_ATTRIBUTE_CHANGE Событие при смене значения аттрибута
-     * @property {string} name
-     * @property {*} value
-     * @property {*} oldValue
-     * */
-    static EVENT_ATTRIBUTE_CHANGE = 'attributechange';
-
-    /**
-     * @event BaseModel#EVENT_ATTRIBUTES_RESET Событие при сбросе аттрибутов к значениям при инициализации конструктора
-     * @property {object} attributes Текущие сброшенные значения
-     * */
-    static EVENT_ATTRIBUTES_RESET = 'attributesdrop';
-
-    /**
-     * @event BaseModel#EVENT_ERRORS_CHANGE Событие при ошибке валидации
-     * @property {object} errors Ассоциативный объект ошибок, где ключи имена аттрибутов, а значения массив ошибок
-     * */
-    static EVENT_ERRORS_CHANGE = 'errorschange';
-
-
     /**
      * @inheritDoc
      * */
@@ -84,12 +65,26 @@ export default class BaseModel extends BaseClass {
 
         const defaultAttrs = this.getDefaultAttributes();
 
-        // Аттрибуты инициализации
-        this.__initialAttributes = extend({}, defaultAttrs, attributes);
-        // Сохраненные аттрибуты
-        this.__attributes = {...this.__initialAttributes};
-        // Стек ошибок
-        this.__errors = {};
+        /**
+         *  Реактивные аттрибуты
+         *  @type {UnwrapNestedRefs}
+         *  */
+        this.attributes = reactive(defaultAttrs);
+
+        /**
+         * Стек ошибок, индексированный по именам аттрибутов
+         *  @type {Ref}
+         * */
+        this.errors = ref();
+
+        /**
+         * @type {ComputedRef}
+         * */
+        this.hasErrors = computed(() => !isEmpty(this.errors.value));
+
+        if (!isEmpty(attributes)) {
+            this.setAttributes(attributes);
+        }
     }
 
 
@@ -135,27 +130,39 @@ export default class BaseModel extends BaseClass {
      * @return {*} Значение аттрибута
      * */
     getAttribute(name) {
-        if (typeof this.__attributes[name] === undefined) {
-            throw new Error(`Uncknown attribute ${name}`);
-        }
-        return this.__attributes[name];
+        return this.attributes[name];
     }
 
 
     /**
+     * @param {Array} attributeNames Имена нужных аттрибутов или будут возвращены все
      * @return {object} Текущие аттрибуты
      * */
-    getAttributes() {
-        return this.__attributes;
+    getAttributes(attributeNames = []) {
+        if (attributeNames.length) {
+            return pick(this.attributes, attributeNames);
+        }
+        return this.attributes;
     }
 
 
     /**
-     * Смена нескольких аттрибутов в цикле
-     * @param {Object} attrs
+     * @param {Object.<string,*>} dirtyAttrs
+     * @return {Object.<string,*>}
+     * @protected
+     * */
+    _clearDirtyAttributes(dirtyAttrs) {
+        return pick(dirtyAttrs, keys(this.getDefaultAttributes()));
+    }
+
+
+    /**
+     * Новые значения аттрибутов
+     * @param {Object} attrs Объект данные будет отфильтрован перед назначением
      * */
     setAttributes(attrs = {}) {
-        forEach(attrs, (value, key) => this.setAttribute(key, value));
+        const clearAttributes = this._clearDirtyAttributes(attrs);
+        Object.assign(this.attributes, clearAttributes);
     }
 
 
@@ -164,28 +171,22 @@ export default class BaseModel extends BaseClass {
      * @param {*} value Новое значение
      * */
     setAttribute(name, value) {
-        const oldValue = this.getAttribute(name);
-        if (isEqual(oldValue, value)) {
-            return;
-        }
-        this.__attributes[name] = value;
-        this.emit(this.constructor.EVENT_ATTRIBUTE_CHANGE, {name, value, oldValue});
+        this.setAttributes({[name]: value});
     }
 
 
     /**
      * Сброс данных к первоначальным значениям (при инициализации)
-     * @fires {BaseModel#EVENT_ATTRIBUTES_RESET}
      * */
     resetAttributes() {
-        this.__attributes = {...this.__initialAttributes};
-        this.emit(this.constructor.EVENT_ATTRIBUTES_RESET, {attributes: this.__attributes});
+        Object.assign(this.attributes, this.getDefaultAttributes());
     }
 
 
     /**
      * Валидация Модели
-     * @param {object} attributes Аттрибуты для валидации, или будут использованы все
+     * Ошибки можно прочесть из реактивного свойства BaseModel.errors.value
+     * @param {array} attributes Аттрибуты для валидации, или будут использованы все
      * @param {object} constraints Персональные правила, иначе будут взяты из метода {BaseModel#getValidationConstraints}
      * @param {object} extraConfig Дополнительная конфигурация для Валидатора
      * @return {boolean} Результат валидации
@@ -198,52 +199,29 @@ export default class BaseModel extends BaseClass {
         // Поскольку validate.js не поддерживает создание экземпляра
         // Возможно передать дополнительные опции при валидации, которые мы берем из конфигурации Модели
         const options = {...this.getConfig('validate'), ...extraConfig};
-
-        const errors = validate(attrToValidate, constraintsToValidate, options);
-        this.setErrors(errors);
-        return !this.hasErrors();
+        const dataToValidate = this.getAttributes(attrToValidate);
+        const errors = validate(dataToValidate, constraintsToValidate, options);
+        if (!isEmpty(errors)) {
+            this.setErrors(errors);
+        }
+        return !this.hasErrors.value;
     }
 
 
     /**
      * Метод установки ошибок
-     * @param {object} errors Объект ошибок, где ключи это аттрибуты, значения массив с ошибками
-     *
-     * @fires {BaseModel#EVENT_ERRORS_CHANGE} В случае наличия ошибок
+     * @param {Object.<string,array>} errors Объект ошибок, где ключи это аттрибуты, значения массив с ошибками
      * */
     setErrors(errors) {
-        if (!isEqual(this.__errors, errors)) {
-            this.__errors = errors;
-            this.emit(this.constructor.EVENT_ERRORS_CHANGE, {errors});
-        }
-    }
-
-
-    /**
-     * @return {boolean}
-     * */
-    hasErrors() {
-        return !isEmpty(this.__errors);
-    }
-
-
-    /**
-     * @return {object} Объект ошибок, где ключи это аттрибуты, значения массив с ошибками
-     * */
-    getErrors() {
-        return this.__errors;
+        this.errors.value = errors;
     }
 
 
     /**
      * Сброс ошибок
-     * @fires {BaseModel#EVENT_ERRORS_CHANGE} Если были ошибки
      * */
     dropErrors() {
-        if (!isEmpty(this.__errors)) {
-            this.emit(this.constructor.EVENT_ERRORS_CHANGE, {errors: {}});
-        }
-        this.__errors = {};
+        this.errors.value = null;
     }
 
 
@@ -285,9 +263,30 @@ export default class BaseModel extends BaseClass {
 
     /**
      * Сериализуем Модель в строку
+     * @param {Array} attributeNames Имена нужных аттрибутов или будут возвращены все
      * @return {string} JSON строка с аттрибутами
+     * @throws Error В случае неудачи
      * */
-    serialize() {
-        return JSON.stringify(this.__attributes);
+    serialize(attributeNames = []) {
+        try {
+            return JSON.stringify(this.getAttributes(attributeNames));
+        } catch (e) {
+            throw new Error('Failed serialize model: ' + e.message);
+        }
+    }
+
+
+    /**
+     * Десериализуем Модель, ранее сериализованную методом BaseModel#serialize
+     * @param {string} str
+     * @throws Error В случае неудачи
+     *  */
+    deserialize(str) {
+        try {
+            const data = JSON.parse(str);
+            this.setAttributes(data);
+        } catch (e) {
+            throw new Error('Failed deserialize model: ' + e.message);
+        }
     }
 }
