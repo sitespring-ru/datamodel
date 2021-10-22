@@ -21,7 +21,8 @@
         "lodash": "^4.17.21",
         "mitt": "^3.0.0",
         "ts-jest": "^27.0.6",
-        "validate.js": "^0.13.1"
+        "validate.js": "^0.13.1",
+        "vue": "^3.2.20"
     },
     "jest": {
         "transform": {

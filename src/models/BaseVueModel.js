@@ -1,37 +1,18 @@
-import {extend, forEach, isEmpty, isEqual} from "lodash";
+import {extend, forEach, isEmpty, isEqual, keys, pick} from "lodash";
 import BaseClass from "./BaseClass";
 import BaseProxy from "./BaseProxy";
 import validate from "validate.js";
+import {computed, reactive, ref} from "vue";
 
 
 /**
- * Базовая модель поддерживающая аттрибуты, валидацию, прокси для запросов к серверу
+ * Базовая модель  использующая vue 3 composition api
+ * поддерживающая аттрибуты, валидацию, прокси для запросов к серверу
  * @author Evgeny Shevtsov, info@sitespring.ru
  * @homepage https://sitespring.ru
  * @licence Proprietary
  */
-export default class BaseModel extends BaseClass {
-    /**
-     * @event BaseModel#EVENT_ATTRIBUTE_CHANGE Событие при смене значения аттрибута
-     * @property {string} name
-     * @property {*} value
-     * @property {*} oldValue
-     * */
-    static EVENT_ATTRIBUTE_CHANGE = 'attributechange';
-
-    /**
-     * @event BaseModel#EVENT_ATTRIBUTES_RESET Событие при сбросе аттрибутов к значениям при инициализации конструктора
-     * @property {object} attributes Текущие сброшенные значения
-     * */
-    static EVENT_ATTRIBUTES_RESET = 'attributesdrop';
-
-    /**
-     * @event BaseModel#EVENT_ERRORS_CHANGE Событие при ошибке валидации
-     * @property {object} errors Ассоциативный объект ошибок, где ключи имена аттрибутов, а значения массив ошибок
-     * */
-    static EVENT_ERRORS_CHANGE = 'errorschange';
-
-
+export default class BaseVueModel extends BaseClass {
     /**
      * @inheritDoc
      * */
@@ -84,12 +65,15 @@ export default class BaseModel extends BaseClass {
 
         const defaultAttrs = this.getDefaultAttributes();
 
-        // Аттрибуты инициализации
+        // Сохраняем аттрибуты инициализации = исходное состояние
         this.__initialAttributes = extend({}, defaultAttrs, attributes);
-        // Сохраненные аттрибуты
-        this.__attributes = {...this.__initialAttributes};
+
+        // Реактивные аттрибуты
+        this.attributes = reactive(this.__initialAttributes);
+
         // Стек ошибок
-        this.__errors = {};
+        this.errors = ref([]);
+        this.hasErrors = computed(() => !isEmpty(this.errors.value));
     }
 
 
@@ -135,10 +119,10 @@ export default class BaseModel extends BaseClass {
      * @return {*} Значение аттрибута
      * */
     getAttribute(name) {
-        if (typeof this.__attributes[name] === undefined) {
+        if (typeof this.attributes[name] === undefined) {
             throw new Error(`Uncknown attribute ${name}`);
         }
-        return this.__attributes[name];
+        return this.attributes[name];
     }
 
 
@@ -146,16 +130,18 @@ export default class BaseModel extends BaseClass {
      * @return {object} Текущие аттрибуты
      * */
     getAttributes() {
-        return this.__attributes;
+        return this.attributes;
     }
 
 
     /**
-     * Смена нескольких аттрибутов в цикле
-     * @param {Object} attrs
+     * Новые значения аттрибутов
+     * @param {Object} dirtyAttrs Объект данные будет отфильтрован перед назначением
      * */
-    setAttributes(attrs = {}) {
-        forEach(attrs, (value, key) => this.setAttribute(key, value));
+    setAttributes(dirtyAttrs = {}) {
+        // Предполагаем что допустимы только обозначенные при инициализации аттрибуты
+        const clearAttributes = pick(dirtyAttrs, keys(this.__initialAttributes));
+        Object.assign(this.attributes, clearAttributes);
     }
 
 
@@ -164,12 +150,7 @@ export default class BaseModel extends BaseClass {
      * @param {*} value Новое значение
      * */
     setAttribute(name, value) {
-        const oldValue = this.getAttribute(name);
-        if (isEqual(oldValue, value)) {
-            return;
-        }
-        this.__attributes[name] = value;
-        this.emit(this.constructor.EVENT_ATTRIBUTE_CHANGE, {name, value, oldValue});
+        this.setAttributes({[name]: value});
     }
 
 
@@ -178,14 +159,13 @@ export default class BaseModel extends BaseClass {
      * @fires {BaseModel#EVENT_ATTRIBUTES_RESET}
      * */
     resetAttributes() {
-        this.__attributes = {...this.__initialAttributes};
-        this.emit(this.constructor.EVENT_ATTRIBUTES_RESET, {attributes: this.__attributes});
+        Object.assign(this.attributes, this.__initialAttributes);
     }
 
 
     /**
      * Валидация Модели
-     * @param {object} attributes Аттрибуты для валидации, или будут использованы все
+     * @param {array} attributes Аттрибуты для валидации, или будут использованы все
      * @param {object} constraints Персональные правила, иначе будут взяты из метода {BaseModel#getValidationConstraints}
      * @param {object} extraConfig Дополнительная конфигурация для Валидатора
      * @return {boolean} Результат валидации

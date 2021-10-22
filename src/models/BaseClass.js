@@ -27,7 +27,7 @@ export default class BaseClass {
 
     /**
      * Здесь определяется дефолтная конфигурация, которая может быть переопределена в конструкторе
-     * @return {Object}
+     * @return {Object.<string,*>}
      * */
     static getDefaultConfig() {
         return {}
