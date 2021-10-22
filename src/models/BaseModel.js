@@ -38,7 +38,7 @@ export default class BaseModel extends BaseClass {
     /**
      * @return {Object.<string,*>} Дефолтные аттрибуты Модели
      */
-    getDefaultAttributes() {
+    defaults() {
         return {
             id: null
         }
@@ -50,7 +50,7 @@ export default class BaseModel extends BaseClass {
      * По умолчанию используется библиотека https://validatejs.org/
      * @see https://validatejs.org/
      * */
-    getValidationConstraints() {
+    validationConstraints() {
         return {}
     }
 
@@ -63,7 +63,7 @@ export default class BaseModel extends BaseClass {
     constructor(attributes = {}, config = {}) {
         super(config);
 
-        const defaultAttrs = this.getDefaultAttributes();
+        const defaultAttrs = this.defaults();
 
         /**
          *  Реактивные аттрибуты
@@ -81,6 +81,11 @@ export default class BaseModel extends BaseClass {
          * @type {ComputedRef}
          * */
         this.hasErrors = computed(() => !isEmpty(this.errors.value));
+
+        /**
+         * @type {Ref<boolean>} Реактивное состояние ожидания Прокси
+         */
+        this.isRequesting = ref(false);
 
         if (!isEmpty(attributes)) {
             this.setAttributes(attributes);
@@ -152,7 +157,7 @@ export default class BaseModel extends BaseClass {
      * @protected
      * */
     _clearDirtyAttributes(dirtyAttrs) {
-        return pick(dirtyAttrs, keys(this.getDefaultAttributes()));
+        return pick(dirtyAttrs, keys(this.defaults()));
     }
 
 
@@ -179,7 +184,7 @@ export default class BaseModel extends BaseClass {
      * Сброс данных к первоначальным значениям (при инициализации)
      * */
     resetAttributes() {
-        Object.assign(this.attributes, this.getDefaultAttributes());
+        Object.assign(this.attributes, this.defaults());
     }
 
 
@@ -187,7 +192,7 @@ export default class BaseModel extends BaseClass {
      * Валидация Модели
      * Ошибки можно прочесть из реактивного свойства BaseModel.errors.value
      * @param {array} attributes Аттрибуты для валидации, или будут использованы все
-     * @param {object} constraints Персональные правила, иначе будут взяты из метода {BaseModel#getValidationConstraints}
+     * @param {object} constraints Персональные правила, иначе будут взяты из метода {BaseModel#validationConstraints}
      * @param {object} extraConfig Дополнительная конфигурация для Валидатора
      * @return {boolean} Результат валидации
      * */
@@ -195,7 +200,7 @@ export default class BaseModel extends BaseClass {
         this.dropErrors();
 
         const attrToValidate = attributes || this.getAttributes();
-        const constraintsToValidate = constraints || this.getValidationConstraints();
+        const constraintsToValidate = constraints || this.validationConstraints();
         // Поскольку validate.js не поддерживает создание экземпляра
         // Возможно передать дополнительные опции при валидации, которые мы берем из конфигурации Модели
         const options = {...this.getConfig('validate'), ...extraConfig};
@@ -249,6 +254,7 @@ export default class BaseModel extends BaseClass {
         const proxy = this.getProxy();
         try {
             this.dropErrors();
+            this.isRequesting.value = true;
             const responseData = (await proxy.doRequest(config));
             return Promise.resolve(responseData);
         } catch (e) {
@@ -257,6 +263,8 @@ export default class BaseModel extends BaseClass {
                 this.setErrors(e.parsedErrors);
             }
             return Promise.reject(e);
+        } finally {
+            this.isRequesting.value = false;
         }
     }
 

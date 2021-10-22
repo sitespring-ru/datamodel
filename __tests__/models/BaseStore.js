@@ -15,9 +15,9 @@ jest.mock('axios');
 axios.create.mockReturnThis();
 
 class TestModel extends BaseModel {
-    getDefaultAttributes() {
+    defaults() {
         return {
-            ...super.getDefaultAttributes(),
+            ...super.defaults(),
             name: null,
             age: null
         };

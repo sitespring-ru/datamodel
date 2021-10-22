@@ -1,6 +1,6 @@
 {
     "name": "@sitespring/datamodel",
-    "version": "1.0.1",
+    "version": "1.0.0",
     "description": "Базовые классы для работы с данными: Model, Store, Proxy, использующие реактивность vue3",
     "main": "index.js",
     "scripts": {

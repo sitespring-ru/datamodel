@@ -67,6 +67,11 @@ export default class BaseStore extends BaseClass {
         this.isFetched = ref(false);
 
         /**
+         * @type {Ref<boolean>} Реактивное состояние ожидания Прокси
+         */
+        this.isRequesting = ref(false);
+
+        /**
          *  @typedef {object} FilterDefinition Объект описания Фильтра
          *  @property {string} property Название аттрибута
          *  @property {?*} value Значение для сравнения
@@ -540,10 +545,13 @@ export default class BaseStore extends BaseClass {
     async doRequest(config) {
         const proxy = this.getProxy();
         try {
+            this.isRequesting.value = true;
             const responseData = (await proxy.doRequest(config));
             return Promise.resolve(responseData);
         } catch (e) {
             return Promise.reject(e);
+        } finally {
+            this.isRequesting.value = false;
         }
     }
 }
