@@ -67,7 +67,7 @@ export default class BaseModel extends BaseClass {
 
         /**
          *  Реактивные аттрибуты
-         *  @type {UnwrapNestedRefs}
+         *  @type {Proxy<string,*>}
          *  */
         this.attributes = reactive(defaultAttrs);
 
@@ -121,7 +121,7 @@ export default class BaseModel extends BaseClass {
      * @return {boolean} Имеет ли модель id в базе данных
      * */
     isPhantom() {
-        return isEmpty(this.getId());
+        return !this.getId();
     }
 
 

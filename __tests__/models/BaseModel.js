@@ -39,16 +39,18 @@ describe('Работа с аттрибутами', () => {
             id: null,
             bar: 'baz'
         });
+        expect($model.isPhantom()).toBeTruthy();
     });
 
     test('Неизвестный аттрибут', () => {
-        const $model = new TestModel();
+        const $model = new TestModel({id: 666});
         $model.setAttribute('unknown', 'foo')
         expect(() => $model.getAttribute('unknown').toBeNull());
         expect($model.getAttributes()).toEqual({
-            id: null,
+            id: 666,
             bar: 'foo'
         });
+        expect($model.isPhantom()).toBeFalsy();
     });
 
     test('Изменение после инициализации', (done) => {
