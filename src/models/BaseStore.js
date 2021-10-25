@@ -318,8 +318,8 @@ export default class BaseStore extends BaseClass {
      * @protected
      * */
     _parseModelsFromResponseData(response) {
-        // Предполагается что данные передаются в конверте data
-        return response.data.data;
+        // Предполагается что данные передаются в конверте data при пагинации или сразу стеком при ее отсутствии
+        return this.isPaginated() ? response.data : response;
     }
 
 

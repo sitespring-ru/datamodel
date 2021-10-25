@@ -214,14 +214,12 @@ describe('Пагинация', () => {
 
         //  Сервер вернет послед. страницу данных
         $store.doRequest = jest.fn().mockResolvedValue({
-            data: {
-                data: mockModels.slice(4),
-                _meta: {
-                    currentPage: 3,
-                    perPage: 2,
-                    totalCount: 5,
-                    pageCount: 3
-                }
+            data: mockModels.slice(4),
+            _meta: {
+                currentPage: 3,
+                perPage: 2,
+                totalCount: 5,
+                pageCount: 3
             }
         });
         await $store.fetch();
