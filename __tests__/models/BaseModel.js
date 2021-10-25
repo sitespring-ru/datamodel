@@ -106,7 +106,6 @@ describe('Валидация данных', () => {
         $model.setAttribute('bar', 'some');
         expect($model.validate()).toBeTruthy();
         expect($model.hasErrors.value).toBeFalsy();
-        expect($model.errors.value).toBeNull();
     });
 
     test('Валидация с доп. параметрами', () => {

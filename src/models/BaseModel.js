@@ -75,7 +75,7 @@ export default class BaseModel extends BaseClass {
          * Стек ошибок, индексированный по именам аттрибутов
          *  @type {Ref}
          * */
-        this.errors = ref();
+        this.errors = ref({});
 
         /**
          * @type {ComputedRef}
@@ -226,7 +226,7 @@ export default class BaseModel extends BaseClass {
      * Сброс ошибок
      * */
     dropErrors() {
-        this.errors.value = null;
+        this.errors.value = {};
     }
 
 
