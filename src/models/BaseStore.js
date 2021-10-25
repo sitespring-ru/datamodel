@@ -1,4 +1,4 @@
-import {isEmpty, without, find, isEqual, size, values, each, reduce, remove, bind, map, get, matchesProperty, isFunction, isMatch} from "lodash";
+import {isEmpty, find, isEqual, size, values, each, remove, bind, map, get, isFunction, isMatch} from "lodash";
 import BaseProxy from "./BaseProxy";
 import BaseClass from "./BaseClass";
 import BaseModel from "./BaseModel";
@@ -218,7 +218,7 @@ export default class BaseStore extends BaseClass {
             }
         }
 
-        this.models.value.push(model);
+        this.models.value = [...this.models.value, model];
         return {model, isCreated: true};
     }
 
