@@ -18,7 +18,8 @@ class TestModel extends BaseModel {
     defaults() {
         return {
             ...super.defaults(),
-            bar: 'foo'
+            bar: 'foo',
+            name: null
         };
     }
 
@@ -26,6 +27,16 @@ class TestModel extends BaseModel {
         return {
             bar: {
                 presence: true
+            },
+            name: {
+                presence: {
+                    allowEmpty: false,
+                    message: 'required'
+                },
+                length: {
+                    minimum: 3,
+                    tooShort: 'tooShort'
+                }
             }
         }
     }
@@ -37,7 +48,8 @@ describe('Работа с аттрибутами', () => {
         // Ожидаем только изменения для bar, т.к. аттрибут some не был определен для Модели
         expect($model.getAttributes()).toEqual({
             id: null,
-            bar: 'baz'
+            bar: 'baz',
+            name: null
         });
         expect($model.isPhantom()).toBeTruthy();
     });
@@ -48,7 +60,8 @@ describe('Работа с аттрибутами', () => {
         expect(() => $model.getAttribute('unknown').toBeNull());
         expect($model.getAttributes()).toEqual({
             id: 666,
-            bar: 'foo'
+            bar: 'foo',
+            name: null
         });
         expect($model.isPhantom()).toBeFalsy();
     });
@@ -56,7 +69,10 @@ describe('Работа с аттрибутами', () => {
     test('Изменение после инициализации', (done) => {
         const $model = new TestModel();
         watch($model.attributes, (attrs) => {
-            expect(attrs).toEqual({id: null, bar: 'nofood'});
+            expect(attrs).toEqual({
+                id: null, bar: 'nofood',
+                name: null
+            });
             done();
         });
         $model.setAttribute('bar', 'nofood');
@@ -77,7 +93,7 @@ describe('Работа с аттрибутами', () => {
             mother: ['fucker']
         });
         $model.resetAttributes();
-        expect($model.getAttributes()).toEqual({id: null, bar: 'foo'});
+        expect($model.getAttributes()).toEqual({id: null, bar: 'foo', name: null});
     });
 
     test('Генерация id', () => {
@@ -87,9 +103,9 @@ describe('Работа с аттрибутами', () => {
 
     test('Сериализация данных', () => {
         const $model = new TestModel({bar: 'baz'});
-        expect($model.serialize()).toEqual('{"id":null,"bar":"baz"}');
+        expect($model.serialize()).toEqual('{"id":null,"bar":"baz","name":null}');
         $model.deserialize('{"id":666,"bar":"superBoom"}')
-        expect($model.getAttributes()).toEqual({id: 666, bar: 'superBoom'});
+        expect($model.getAttributes()).toEqual({id: 666, bar: 'superBoom', name: null});
     });
 });
 
@@ -101,9 +117,10 @@ describe('Валидация данных', () => {
         $model.setAttributes({bar: null});
         expect($model.validate()).toBeFalsy();
         expect($model.hasErrors.value).toBeTruthy();
-        expect($model.errors.value).toEqual({bar: ['Expect not to be empty']});
+        expect($model.errors.value).toEqual({bar: ['Expect not to be empty'], name:['required']});
 
         $model.setAttribute('bar', 'some');
+        $model.setAttribute('name', 'Xoxa');
         expect($model.validate()).toBeTruthy();
         expect($model.hasErrors.value).toBeFalsy();
     });
@@ -114,6 +131,14 @@ describe('Валидация данных', () => {
         expect($model.validate(['bar'], constraints)).toBeFalsy();
         expect($model.errors.value).toEqual({bar: ['Bar required']});
     });
+
+
+    test('Валидация отдельных полей', () => {
+        const $model = new TestModel({name: "xo"});
+        expect($model.validate(['name'])).toBeFalsy();
+        expect($model.errors.value).toEqual({name: ['tooShort']});
+    });
+
 
     test('Сброс ошибок', () => {
         const $model = new TestModel();

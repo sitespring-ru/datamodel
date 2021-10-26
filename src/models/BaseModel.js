@@ -1,4 +1,4 @@
-import {extend, isEmpty, keys, pick} from "lodash";
+import {extend, isArray, isEmpty, keys, pick} from "lodash";
 import BaseClass from "./BaseClass";
 import BaseProxy from "./BaseProxy";
 import validate from "validate.js";
@@ -144,7 +144,7 @@ export default class BaseModel extends BaseClass {
      * @return {object} Текущие аттрибуты
      * */
     getAttributes(attributeNames = []) {
-        if (attributeNames.length) {
+        if (isArray(attributeNames) && attributeNames.length) {
             return pick(this.attributes, attributeNames);
         }
         return this.attributes;
@@ -199,12 +199,11 @@ export default class BaseModel extends BaseClass {
     validate(attributes = null, constraints = null, extraConfig = null) {
         this.dropErrors();
 
-        const attrToValidate = attributes || this.getAttributes();
-        const constraintsToValidate = constraints || this.validationConstraints();
+        const constraintsToValidate = constraints || attributes && pick(this.validationConstraints(), attributes) || this.validationConstraints();
         // Поскольку validate.js не поддерживает создание экземпляра
         // Возможно передать дополнительные опции при валидации, которые мы берем из конфигурации Модели
         const options = {...this.getConfig('validate'), ...extraConfig};
-        const dataToValidate = this.getAttributes(attrToValidate);
+        const dataToValidate = this.getAttributes(attributes);
         const errors = validate(dataToValidate, constraintsToValidate, options);
         if (!isEmpty(errors)) {
             this.setErrors(errors);
