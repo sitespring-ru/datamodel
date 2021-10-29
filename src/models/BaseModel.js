@@ -1,4 +1,4 @@
-import {extend, isArray, isEmpty, keys, pick} from "lodash";
+import {extend, isArray, isEmpty, keys, pick, values} from "lodash";
 import BaseClass from "./BaseClass";
 import BaseProxy from "./BaseProxy";
 import validate from "validate.js";
@@ -73,7 +73,7 @@ export default class BaseModel extends BaseClass {
 
         /**
          * Стек ошибок, индексированный по именам аттрибутов
-         *  @type {Ref}
+         *  @type {Ref<{}>}
          * */
         this.errors = ref({});
 
@@ -226,6 +226,18 @@ export default class BaseModel extends BaseClass {
      * */
     dropErrors() {
         this.errors.value = {};
+    }
+
+
+    /**
+     * Кейс когда нам нужно узнать текст первой ошибки без привязки к аттрибуту
+     * @return {?String}
+     * */
+    getFirstErrorMessage() {
+        if (!this.hasErrors.value) {
+            return null;
+        }
+        return values(this.errors.value)[0][0];
     }
 
 

@@ -163,6 +163,7 @@ describe('Валидация данных', () => {
         } catch (e) {
             expect($model.hasErrors.value).toBeTruthy();
             expect($model.errors.value).toEqual({'bar': ['Foo required']});
+            expect($model.getFirstErrorMessage()).toEqual('Foo required');
         }
     });
 });
