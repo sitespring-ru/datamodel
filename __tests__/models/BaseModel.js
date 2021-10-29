@@ -117,7 +117,7 @@ describe('Валидация данных', () => {
         $model.setAttributes({bar: null});
         expect($model.validate()).toBeFalsy();
         expect($model.hasErrors.value).toBeTruthy();
-        expect($model.errors.value).toEqual({bar: ['Expect not to be empty'], name:['required']});
+        expect($model.errors.value).toEqual({bar: ['Expect not to be empty'], name: ['required']});
 
         $model.setAttribute('bar', 'some');
         $model.setAttribute('name', 'Xoxa');
@@ -164,6 +164,26 @@ describe('Валидация данных', () => {
             expect($model.hasErrors.value).toBeTruthy();
             expect($model.errors.value).toEqual({'bar': ['Foo required']});
             expect($model.getFirstErrorMessage()).toEqual('Foo required');
+        }
+    });
+
+
+    test('Автовалидация перед запросом', async () => {
+        validate.validators.presence.options = {message: 'Expect not to be empty'};
+        const $model = new TestModel({bar: null});
+        // Автовалидация всех аттрибутов
+        try {
+            await $model.doRequest({}, true);
+        } catch (e) {
+            expect(e).toEqual('Before request validation failed');
+            expect($model.errors.value).toEqual({bar: ['Expect not to be empty'], name: ['required']});
+        }
+        // Автовалидация выбранных аттрибутов
+        try {
+            await $model.doRequest({}, ['name']);
+        } catch (e) {
+            expect(e).toEqual('Before request validation failed');
+            expect($model.errors.value).toEqual({name: ['required']});
         }
     });
 });

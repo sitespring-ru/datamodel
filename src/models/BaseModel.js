@@ -191,19 +191,19 @@ export default class BaseModel extends BaseClass {
     /**
      * Валидация Модели
      * Ошибки можно прочесть из реактивного свойства BaseModel.errors.value
-     * @param {array} attributes Аттрибуты для валидации, или будут использованы все
-     * @param {object} constraints Персональные правила, иначе будут взяты из метода {BaseModel#validationConstraints}
-     * @param {object} extraConfig Дополнительная конфигурация для Валидатора
+     * @param {?Array} attributes Аттрибуты для валидации, или будут использованы все
+     * @param {?Object} constraints Персональные правила, иначе будут взяты из метода {BaseModel#validationConstraints}
+     * @param {?Object} extraConfig Дополнительная конфигурация для Валидатора
      * @return {boolean} Результат валидации
      * */
     validate(attributes = null, constraints = null, extraConfig = null) {
         this.dropErrors();
 
-        const constraintsToValidate = constraints || attributes && pick(this.validationConstraints(), attributes) || this.validationConstraints();
+        const constraintsToValidate = constraints || isArray(attributes) && pick(this.validationConstraints(), attributes) || this.validationConstraints();
         // Поскольку validate.js не поддерживает создание экземпляра
         // Возможно передать дополнительные опции при валидации, которые мы берем из конфигурации Модели
         const options = {...this.getConfig('validate'), ...extraConfig};
-        const dataToValidate = this.getAttributes(attributes);
+        const dataToValidate = isArray(attributes) ? this.getAttributes(attributes) : this.getAttributes();
         const errors = validate(dataToValidate, constraintsToValidate, options);
         if (!isEmpty(errors)) {
             this.setErrors(errors);
@@ -256,13 +256,21 @@ export default class BaseModel extends BaseClass {
 
     /**
      * Выполнение запроса через прокси
-     * Подразумевается что валидация перед запросом отдается на откуп логике приложения
      * @param {Object} config - Конфигурация для запроса axios
+     * @param {String[]|Boolean} validateAttributes Список аттрибутов для автовалидации перед запросом,
+     *  true для валидации всех аттрибутов, false без валидации (отдается на откуп логике приложения)
      *
      * @return {Promise}
      * */
-    async doRequest(config) {
+    async doRequest(config, validateAttributes = false) {
         const proxy = this.getProxy();
+        if (validateAttributes) {
+            let validationResult = this.validate(validateAttributes);
+            if (!validationResult) {
+                return Promise.reject('Before request validation failed');
+            }
+        }
+
         try {
             this.dropErrors();
             this.isRequesting.value = true;
