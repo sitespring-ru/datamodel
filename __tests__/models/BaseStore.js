@@ -84,6 +84,13 @@ describe('Работа с моделями', () => {
         expect($store.find({name: 'bobr'})).toBeFalsy();
         expect($store.find((model) => model.attributes.name === 'xoxa2').getId()).toEqual($modelPhantom.getId());
     });
+
+
+    test('Сериализация моделей в массив', () => {
+        const $store = new TestStore([{id: 666, name: 'xoxa1', age: 11}, {id: 1, name: 'xoxa2'}, {id: 2, age: 33}]);
+        const modelsArray = $store.toArray();
+        expect(modelsArray).toEqual([{id: 666, name: 'xoxa1', age: 11}, {id: 1, name: 'xoxa2'}, {id: 2, age: 33}]);
+    });
 });
 
 

@@ -103,7 +103,7 @@ describe('Работа с аттрибутами', () => {
 
     test('Сериализация данных', () => {
         const $model = new TestModel({bar: 'baz'});
-        expect($model.serialize()).toEqual('{"id":null,"bar":"baz","name":null}');
+        expect($model.serialize()).toEqual('{"bar":"baz"}');
         $model.deserialize('{"id":666,"bar":"superBoom"}')
         expect($model.getAttributes()).toEqual({id: 666, bar: 'superBoom', name: null});
     });

@@ -1,4 +1,4 @@
-import {extend, isArray, isEmpty, keys, pick, values} from "lodash";
+import {extend, isArray, isEmpty, isNull, keys, omitBy, pick, values} from "lodash";
 import BaseClass from "./BaseClass";
 import BaseProxy from "./BaseProxy";
 import validate from "validate.js";
@@ -152,6 +152,15 @@ export default class BaseModel extends BaseClass {
 
 
     /**
+     * @param {Array} attributeNames Имена нужных аттрибутов или будут возвращены все
+     * @return {Object} Текущие аттрибуты которые не пусты
+     * */
+    getNonEmptyAttributes(attributeNames = []) {
+        return omitBy(this.getAttributes(attributeNames), isNull);
+    }
+
+
+    /**
      * @param {Object.<string,*>} dirtyAttrs
      * @return {Object.<string,*>}
      * @protected
@@ -296,7 +305,7 @@ export default class BaseModel extends BaseClass {
      * */
     serialize(attributeNames = []) {
         try {
-            return JSON.stringify(this.getAttributes(attributeNames));
+            return JSON.stringify(this.getNonEmptyAttributes(attributeNames));
         } catch (e) {
             throw new Error('Failed serialize model: ' + e.message);
         }

@@ -1,4 +1,4 @@
-import {isEmpty, find, isEqual, size, values, each, remove, bind, map, get, isFunction, isMatch} from "lodash";
+import {isEmpty, find, isEqual, size, values, each, remove, bind, map, get, isFunction, isMatch, filter, reduce} from "lodash";
 import BaseProxy from "./BaseProxy";
 import BaseClass from "./BaseClass";
 import BaseModel from "./BaseModel";
@@ -46,7 +46,7 @@ export default class BaseStore extends BaseClass {
 
         /**
          *  Полный стек моделей
-         *  @type {Ref<[]>}
+         *  @type {Ref<BaseModel[]>}
          * */
         this.models = ref([]);
 
@@ -553,5 +553,13 @@ export default class BaseStore extends BaseClass {
         } finally {
             this.isRequesting.value = false;
         }
+    }
+
+
+    /**
+     * @return {Array} Сериализованный стек данных из моделей
+     * */
+    toArray() {
+        return map(this.models.value, model => model.getNonEmptyAttributes());
     }
 }
