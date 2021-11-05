@@ -6,6 +6,7 @@
 import axios from "axios";
 import BaseModel from "../../src/models/BaseModel";
 import BaseStore from "../../src/models/BaseStore";
+import {watch} from "vue";
 
 
 // Эмулируем модуль целиком
@@ -57,12 +58,18 @@ describe('Работа с моделями', () => {
         expect($store.getCount()).toEqual(2);
     });
 
-    test('Удаление', () => {
-        const $store = new TestStore();
+    test('Удаление', (done) => {
+        const $store = new TestStore([{name: 'xoxa', age: 37}, {name: 'xoxa', age: 37}]);
         let $model = $store.loadModel({name: 'xoxa', age: 37});
-        expect($store.getCount()).toEqual(1);
+        expect($store.getCount()).toEqual(3);
+
+        // Одновременно тестируем Реактивность стека моделей при удалении
+        watch($store.models, (models) => {
+            expect(models).toHaveLength(2);
+            done();
+        });
         $store.remove($model);
-        expect($store.getCount()).toEqual(0);
+        expect($store.models.value).toHaveLength(2);
     });
 
     test('Очищение', () => {

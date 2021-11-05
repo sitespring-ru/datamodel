@@ -224,11 +224,18 @@ export default class BaseStore extends BaseClass {
 
 
     /**
-     * Удаление Модели из Хранилища
+     * Удаление Модели из Хранилища по его ID
      * @param {BaseModel} model
+     * @return {Boolean} true если модель была удалена
      * */
     remove(model) {
-        this.models.value = remove(this.models.value, model);
+        const removeModels = remove(this.models.value, (m) => isEqual(m.getId(), model.getId()));
+        const result = Boolean(size(removeModels));
+        if (true === result) {
+            // Обеспечиваем реактивность
+            this.models.value = [...this.models.value];
+        }
+        return result;
     }
 
 
