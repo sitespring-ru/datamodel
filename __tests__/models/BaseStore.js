@@ -98,6 +98,11 @@ describe('Работа с моделями', () => {
         const modelsArray = $store.toArray();
         expect(modelsArray).toEqual([{id: 666, name: 'xoxa1', age: 11}, {id: 1, name: 'xoxa2'}, {id: 2, age: 33}]);
     });
+
+    test('Суммирование ИТОГО', () => {
+        const $store = new TestStore([{id: 666, name: 'xoxa1', age: 11}, {id: 1, name: 'xoxa2'}, {id: 2, age: 33}]);
+        expect($store.sumBy('age')).toEqual(44);
+    })
 });
 
 

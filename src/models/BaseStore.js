@@ -1,4 +1,4 @@
-import {isEmpty, find, isEqual, size, values, each, remove, bind, map, get, isFunction, isMatch, filter, reduce} from "lodash";
+import {isEmpty, find, isEqual, size, values, each, remove, bind, map, get, isFunction, isMatch, sumBy, filter} from "lodash";
 import BaseProxy from "./BaseProxy";
 import BaseClass from "./BaseClass";
 import BaseModel from "./BaseModel";
@@ -568,5 +568,25 @@ export default class BaseStore extends BaseClass {
      * */
     toArray() {
         return map(this.models.value, model => model.getNonEmptyAttributes());
+    }
+
+
+    /**
+     * Суммирование моделей по аттрибуту
+     * @param {String} attributeName
+     * @return {Number}
+     * */
+    sumBy(attributeName) {
+        return sumBy(this.toArray(), attributeName);
+    }
+
+
+    /**
+     * Локальная фильтрация моделей
+     * @return {BaseStore} Новое идентичное хранилище с отфильтрованными Моделями
+     * todo С использованием единого api внутренних фильтров
+     * */
+    getFilteredStore(predicate) {
+        throw new Error('');
     }
 }
