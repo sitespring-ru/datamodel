@@ -12,17 +12,19 @@
     "files": [
         "src"
     ],
-    "devDependencies": {
+    "dependencies": {
         "@babel/preset-env": "^7.15.8",
         "axios": "^0.23.0",
         "babel": "^6.23.0",
-        "babel-jest": "^27.2.5",
-        "jest": "^27.2.5",
         "lodash": "^4.17.21",
         "mitt": "^3.0.0",
-        "ts-jest": "^27.0.6",
         "validate.js": "^0.13.1",
         "vue": "^3.2.20"
+    },
+    "devDependencies": {
+        "babel-jest": "^27.2.5",
+        "jest": "^27.2.5",
+        "ts-jest": "^27.0.6"
     },
     "jest": {
         "transform": {
