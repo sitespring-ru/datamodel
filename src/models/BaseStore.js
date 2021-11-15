@@ -589,4 +589,15 @@ export default class BaseStore extends BaseClass {
     getFilteredStore(predicate) {
         throw new Error('');
     }
+
+
+    /**
+     * @return {Promise<BaseStore>} Экземпляр Хранилища после загрузки
+     * */
+    async ensureFetched() {
+        if (!this.isFetched.value) {
+            await this.fetch();
+        }
+        return Promise.resolve(this);
+    }
 }

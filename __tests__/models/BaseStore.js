@@ -103,6 +103,16 @@ describe('Работа с моделями', () => {
         const $store = new TestStore([{id: 666, name: 'xoxa1', age: 11}, {id: 1, name: 'xoxa2'}, {id: 2, age: 33}]);
         expect($store.sumBy('age')).toEqual(44);
     })
+
+    test('Загрузка с сервера', async () => {
+        const $store = new TestStore([], {fetchUrl: 'https://api.com'});
+        $store.doRequest = jest.fn();
+        await $store.ensureFetched();
+        expect($store.doRequest).toHaveBeenCalledWith({url: 'https://api.com', params: {}});
+        await $store.ensureFetched();
+        expect($store.doRequest).toHaveBeenCalledTimes(1);
+        expect($store.isFetched.value);
+    });
 });
 
 
