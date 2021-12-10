@@ -49,13 +49,28 @@ test('Смена конфигурации с ключом + событие', (do
 
 
 test('Меняем конфигурацию глобально', () => {
+    // Перед созданием экземпляра
     BaseClass.setDefaultConfig('global', 'scope...');
     const $baseClass = new BaseClass();
+    expect($baseClass.getConfig())
+        .toMatchObject({
+            mother: 'fucker',
+            global: 'scope...'
+        });
+
+    BaseClass.setDefaultConfig('global.scope', 'changed');
     expect($baseClass.getConfig()).toMatchObject({
         mother: 'fucker',
-        global: 'scope...'
-    })
+        global: {
+            scope: 'changed'
+        }
+    });
+    expect($baseClass.getConfig('global')).toMatchObject({
+        scope: 'changed'
+    });
+    expect($baseClass.getConfig('mother')).toMatch("fucker");
 });
+
 
 test('Строковое представление', () => {
     const $baseClass = new BaseClass();

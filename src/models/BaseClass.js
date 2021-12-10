@@ -58,10 +58,8 @@ export default class BaseClass {
      * @param {Object} constructorConfig
      * */
     constructor(constructorConfig = {}) {
-        const self = this.constructor;
-        const defaults = self.getDefaultConfig();
-        const changedDefaults = self.__changedDefaults;
-        this.__constructorConfig = merge({}, defaults, changedDefaults, constructorConfig);
+        /** @type {Object} Данные с которыми был инициализирован Объект */
+        this.__constructorConfig = constructorConfig;// merge({}, defaults, changedDefaults, constructorConfig);
         this.__createEmitter();
     }
 
@@ -86,7 +84,12 @@ export default class BaseClass {
      * @return {*}
      * */
     getConfig(path = '') {
-        return !isEmpty(path) ? get(this.__constructorConfig, path) : this.__constructorConfig;
+        const self = this.constructor;
+        const defaults = self.getDefaultConfig();
+        const changedDefaults = self.__changedDefaults;
+
+        const actualConfig = merge({}, defaults, changedDefaults, this.__constructorConfig);
+        return !isEmpty(path) ? get(actualConfig, path) : actualConfig;
     }
 
 
@@ -119,7 +122,6 @@ export default class BaseClass {
      * следует использовать метод {BaseClass#setDefaultConfig}
      * */
     applyConfig(key, value) {
-
     }
 
 
@@ -127,7 +129,6 @@ export default class BaseClass {
      * Дополнительная логика при смене глобальной конфигурации
      * */
     static applyConfig(key, value) {
-
     }
 
 

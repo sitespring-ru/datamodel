@@ -55,11 +55,6 @@ export default class BaseProxy extends BaseClass {
     constructor() {
         super();
         this._isRequesting = false;
-
-        const self = this.constructor;
-        // При создании автоматом заносим данные
-        self.setAuthToken(this.getConfig('authToken'));
-        self.setBaseUrl(this.getConfig('baseURL'));
     }
 
 

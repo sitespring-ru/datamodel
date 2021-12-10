@@ -91,3 +91,18 @@ test('Ошибка валидации на стороне сервера', (done
     });
 });
 
+
+test('Смена токена авторизации', () => {
+    BaseProxy.setAuthToken(null);
+    expect($proxy.getAxiosInstance().defaults.headers.common).toMatchObject({});
+
+    BaseProxy.setAuthToken('123');
+    expect($proxy.getAxiosInstance().defaults.headers.common).toMatchObject({
+        'Authorization': 'Bearer 123'
+    });
+
+    const anotherProxy = new BaseProxy();
+    expect(anotherProxy.getAxiosInstance().defaults.headers.common).toMatchObject({
+        'Authorization': 'Bearer 123'
+    });
+});
