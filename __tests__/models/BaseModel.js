@@ -159,11 +159,37 @@ describe('Валидация данных', () => {
 
         const $model = new TestModel();
         try {
-            const response = await $model.doRequest({url: 'myapi'});
+            await $model.doRequest({url: 'myapi'});
         } catch (e) {
             expect($model.hasErrors.value).toBeTruthy();
             expect($model.errors.value).toEqual({'bar': ['Foo required']});
             expect($model.getFirstErrorMessage()).toEqual('Foo required');
+        }
+    });
+
+
+    test('Получение первой ошибки', async () => {
+        axios.request.mockRejectedValue({
+            response: {
+                status: 500, data: {message: 'Internal Server Error'}
+            }
+        });
+
+        const $model = new TestModel();
+        try {
+            await $model.doRequest({url: 'myapi'});
+        } catch (e) {
+            expect($model.getFirstErrorMessage()).toEqual('Internal Server Error');
+        }
+
+        axios.request.mockRejectedValue({
+            response: {status: 500, message: 'Internal Server Error 2'}
+        });
+
+        try {
+            await $model.doRequest({url: 'myapi'});
+        } catch (e) {
+            expect($model.getFirstErrorMessage()).toEqual('Internal Server Error 2');
         }
     });
 

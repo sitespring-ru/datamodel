@@ -1,4 +1,4 @@
-import {extend, isArray, isEmpty, isNull, keys, omitBy, pick, values} from "lodash";
+import {extend, isArray, isEmpty, isNull, isObject, keys, omitBy, pick, values} from "lodash";
 import BaseClass from "./BaseClass";
 import BaseProxy from "./BaseProxy";
 import validate from "validate.js";
@@ -243,10 +243,11 @@ export default class BaseModel extends BaseClass {
      * @return {?String}
      * */
     getFirstErrorMessage() {
-        if (!this.hasErrors.value) {
+        const errors = this.errors.value;
+        if (!errors) {
             return null;
         }
-        return values(this.errors.value)[0][0];
+        return values(errors)[0][0];
     }
 
 

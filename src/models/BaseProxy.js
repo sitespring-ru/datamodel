@@ -193,7 +193,7 @@ export default class BaseProxy extends BaseClass {
             // В ответе есть сообщение
             const responseMessage = get(error, 'response.data.message') || get(error, 'response.message');
             if (responseMessage) {
-                error.parsedErrors = [responseMessage];
+                error.parsedErrors = [{0: responseMessage}];
             }
 
             // Ошибка валидации на стороне сервера
