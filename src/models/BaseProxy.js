@@ -1,5 +1,5 @@
 import axios from "axios";
-import {isEmpty, reduce} from "lodash";
+import {get, isEmpty, reduce} from "lodash";
 import BaseClass from "./BaseClass.js";
 
 /**
@@ -191,8 +191,9 @@ export default class BaseProxy extends BaseClass {
         if (error.response) {
             error.isRemoteError = true;
             // В ответе есть сообщение
-            if (error.response.message) {
-                error.parsedErrors = [error.response.message];
+            const responseMessage = get(error, 'response.data.message') || get(error, 'response.message');
+            if (responseMessage) {
+                error.parsedErrors = [responseMessage];
             }
 
             // Ошибка валидации на стороне сервера

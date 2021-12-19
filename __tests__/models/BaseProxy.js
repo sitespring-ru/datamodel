@@ -61,6 +61,23 @@ test('Ошибка запроса', (done) => {
         });
 });
 
+test('Ошибка запроса с вложенными данными', (done) => {
+    const requestConfig = {url: 'test'};
+    const response = {status: 500, data:{ message: 'Nested envelope error'}};
+
+    // Эмулируем ответ
+    axios.request.mockRejectedValue({response});
+
+    $proxy.doRequest(requestConfig)
+        // Отлавливаем ошибку
+        .catch((error) => {
+            expect(error.isRemoteError).toBeTruthy();
+            expect(error.parsedErrors).toHaveLength(1);
+            expect(error.parsedErrors).toEqual(['Nested envelope error']);
+            done();
+        });
+});
+
 
 test('Ошибка валидации на стороне сервера', (done) => {
     const requestConfig = {url: 'test'};
