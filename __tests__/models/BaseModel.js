@@ -3,10 +3,8 @@
  * @homepage https://sitespring.ru
  * @licence Proprietary
  */
-import BaseModel from "../../src/models/BaseModel";
+import BaseModel from "../../src/BaseModel";
 import axios from "axios";
-import validate from "validate.js";
-import {watch} from "vue";
 
 // Эмулируем модуль целиком
 jest.mock('axios');
@@ -15,27 +13,48 @@ jest.mock('axios');
 axios.create.mockReturnThis();
 
 class TestModel extends BaseModel {
-    defaults() {
+    entityName = 'test-model';
+
+    fields() {
         return {
-            ...super.defaults(),
-            bar: 'foo',
-            name: null
+            ...super.fields(),
+            created_at: new Date(),
+            dob: null,
+            age: null,
+            name: ''
         };
     }
 
-    validationConstraints() {
+    innerFilters() {
         return {
-            bar: {
-                presence: true
+            created_at: 'date',
+            dob: 'date',
+            age: 'int',
+            name: 'string'
+        }
+    }
+
+    submitFilters() {
+        return {
+            created_at: 'submitDateTime',
+            dob: 'submitDate'
+        }
+    }
+
+    rules() {
+        return {
+            age: {
+                numericality: {
+                    greaterThan: 0,
+                    lessThan: 120
+                }
             },
             name: {
                 presence: {
-                    allowEmpty: false,
-                    message: 'required'
+                    allowEmpty: true
                 },
                 length: {
-                    minimum: 3,
-                    tooShort: 'tooShort'
+                    minimum: 3
                 }
             }
         }
@@ -44,172 +63,227 @@ class TestModel extends BaseModel {
 
 describe('Работа с аттрибутами', () => {
     test('Аттрибуты через конструктор', () => {
-        const $model = new TestModel({some: 'her', bar: 'baz'});
-        // Ожидаем только изменения для bar, т.к. аттрибут some не был определен для Модели
-        expect($model.getAttributes()).toEqual({
-            id: null,
-            bar: 'baz',
-            name: null
+        const $model = new TestModel({age: '16'});
+        expect($model.getAttributes()).toMatchObject({
+            id: 'TestModel-1',
+            age: 16,
+            dob: null
         });
         expect($model.isPhantom()).toBeTruthy();
+        expect($model.isDirty()).toBeFalsy();
+        expect($model.getAttribute('created_at')).toBeInstanceOf(Date);
     });
 
     test('Неизвестный аттрибут', () => {
-        const $model = new TestModel({id: 666});
-        $model.setAttribute('unknown', 'foo')
-        expect(() => $model.getAttribute('unknown').toBeNull());
-        expect($model.getAttributes()).toEqual({
-            id: 666,
-            bar: 'foo',
-            name: null
-        });
-        expect($model.isPhantom()).toBeFalsy();
+        const $model = new TestModel({bar: 'baz'});
+        $model.setAttribute('bar', 'foo');
+        expect(() => $model.getAttribute('bar')).toThrow('Unknown attribute name "bar"');
     });
 
-    test('Изменение после инициализации', (done) => {
-        const $model = new TestModel();
-        watch($model.attributes, (attrs) => {
-            expect(attrs).toEqual({
-                id: null, bar: 'nofood',
-                name: null
-            });
+    test('Изменение данных', (done) => {
+        const $model = new TestModel({age: '22'});
+        const $newData = {name: '  should be trimmed ', age: '22', dob: '2000-10-01'};
+        const $expData = {name: 'should be trimmed', dob: new Date('2000-10-01')};
+
+        $model.on(TestModel.EVENT_ATTRIBUTES_CHANGE, ($attr) => {
+            expect($model.isDirty()).toBeTruthy();
+            expect($model.getAttributes()).toMatchObject($expData);
+            expect($attr).toEqual($expData);
             done();
         });
-        $model.setAttribute('bar', 'nofood');
-    });
-
-    test('Групповое Изменение', () => {
-        const $model = new TestModel();
-        $model.setAttributes({bar: 'nofood', id: 3});
-        expect($model.getAttribute('bar')).toEqual('nofood');
-        expect($model.getAttribute('id')).toEqual(3);
+        $model.setAttributes($newData);
     });
 
     test('Сброс значений к исходным', () => {
-        const $model = new TestModel({some: 'her', bar: 'baz'});
-        $model.setAttributes({
-            some: 'asd',
-            bar: 'hoy',
-            mother: ['fucker']
-        });
+        const $model = new TestModel({age: 22});
+        expect($model.isDirty()).toBeFalsy();
+        $model.setAttributes({age: 23});
+        expect($model.isDirty()).toBeTruthy();
+        expect($model.getAttribute('age')).toEqual(23);
+        expect($model.getAttribute('age', false)).toEqual(22);
         $model.resetAttributes();
-        expect($model.getAttributes()).toEqual({id: null, bar: 'foo', name: null});
+        expect($model.isDirty()).toBeFalsy();
+        expect($model.getAttribute('age')).toEqual(22);
     });
 
-    test('Генерация id', () => {
-        expect(TestModel.generateId()).toEqual('TestModel-1');
-        expect(TestModel.generateId()).toEqual('TestModel-2');
-    });
 
     test('Сериализация данных', () => {
-        const $model = new TestModel({bar: 'baz'});
-        expect($model.serialize()).toEqual('{"bar":"baz"}');
-        $model.deserialize('{"id":666,"bar":"superBoom"}')
-        expect($model.getAttributes()).toEqual({id: 666, bar: 'superBoom', name: null});
+        const $model = new TestModel({age: '22', dob: '2000-10-01', created_at: '2022-10-03 22:13:57'});
+        expect($model.serialize(['age', 'dob', 'created_at'])).toEqual('{"age":22,"dob":"2000-10-01","created_at":"2022-10-03 22:13:57"}');
+    });
+
+    test('Десериализация данных', () => {
+        const $model = new TestModel();
+        $model.deserialize('{"age":22,"dob":"2000-10-01","created_at":"2022-10-03 22:13:57"}');
+        expect($model.getAttributes()).toMatchObject({
+            age: 22,
+            dob: new Date('2000-10-01'),
+            created_at: new Date('2022-10-03 22:13:57')
+        });
     });
 });
 
-describe('Валидация данных', () => {
-    test('Валидация на стороне клиента', () => {
-        validate.validators.presence.options = {message: 'Expect not to be empty'};
 
-        const $model = new TestModel();
-        $model.setAttributes({bar: null});
-        expect($model.validate()).toBeFalsy();
-        expect($model.hasErrors.value).toBeTruthy();
-        expect($model.errors.value).toEqual({bar: ['Expect not to be empty'], name: ['required']});
-
-        $model.setAttribute('bar', 'some');
-        $model.setAttribute('name', 'Xoxa');
+describe('Валидация на стороне клиента', () => {
+    test('Валидация всех аттрибутов', () => {
+        const $model = new TestModel({name: '123456'});
         expect($model.validate()).toBeTruthy();
-        expect($model.hasErrors.value).toBeFalsy();
-    });
+        expect($model.hasErrors()).toBeFalsy();
 
-    test('Валидация с доп. параметрами', () => {
-        const $model = new TestModel({bar: ""});
-        const constraints = {bar: {presence: {allowEmpty: false, message: 'Bar required'}}};
-        expect($model.validate(['bar'], constraints)).toBeFalsy();
-        expect($model.errors.value).toEqual({bar: ['Bar required']});
+        $model.setAttributes({age: '122', name: '   qw'});
+        expect($model.validate()).toBeFalsy();
+        expect($model.hasErrors()).toBeTruthy();
+        expect($model.getErrors()).toEqual({age: ['must be less than 120'], name: ['is too short (minimum is 3 characters)']});
+        expect($model.getFirstErrorMessage()).toEqual('must be less than 120');
     });
 
 
     test('Валидация отдельных полей', () => {
-        const $model = new TestModel({name: "xo"});
+        const $model = new TestModel({age: '122', name: '   qw'});
         expect($model.validate(['name'])).toBeFalsy();
-        expect($model.errors.value).toEqual({name: ['tooShort']});
+        expect($model.getErrors()).toEqual({name: ['is too short (minimum is 3 characters)']});
     });
 
-
-    test('Сброс ошибок', () => {
-        const $model = new TestModel();
-        $model.setErrors({'foo': ['bar']});
-        expect($model.hasErrors.value).toBeTruthy();
-        $model.dropErrors();
-        expect($model.hasErrors.value).toBeFalsy();
-    });
-
-    test('Валидация на стороне сервера', async () => {
-        axios.request.mockRejectedValue({
-            response: {
-                status: 422, data: [
-                    {field: 'bar', message: 'Foo required'}
-                ]
-            }
-        });
-
-        const $model = new TestModel();
-        try {
-            await $model.doRequest({url: 'myapi'});
-        } catch (e) {
-            expect($model.hasErrors.value).toBeTruthy();
-            expect($model.errors.value).toEqual({'bar': ['Foo required']});
-            expect($model.getFirstErrorMessage()).toEqual('Foo required');
-        }
-    });
-
-
-    test('Получение первой ошибки', async () => {
-        axios.request.mockRejectedValue({
-            response: {
-                status: 500, data: {message: 'Internal Server Error'}
-            }
-        });
-
-        const $model = new TestModel();
-        try {
-            await $model.doRequest({url: 'myapi'});
-        } catch (e) {
-            expect($model.getFirstErrorMessage()).toEqual('Internal Server Error');
-        }
-
-        axios.request.mockRejectedValue({
-            response: {status: 500, message: 'Internal Server Error 2'}
-        });
-
-        try {
-            await $model.doRequest({url: 'myapi'});
-        } catch (e) {
-            expect($model.getFirstErrorMessage()).toEqual('Internal Server Error 2');
-        }
-    });
-
-
-    test('Автовалидация перед запросом', async () => {
-        validate.validators.presence.options = {message: 'Expect not to be empty'};
-        const $model = new TestModel({bar: null});
+    test('Валидация перед запросом', async () => {
+        const $model = new TestModel({age: '122', name: '   qw'});
         // Автовалидация всех аттрибутов
         try {
             await $model.doRequest({}, true);
         } catch (e) {
             expect(e).toEqual('Before request validation failed');
-            expect($model.errors.value).toEqual({bar: ['Expect not to be empty'], name: ['required']});
+            expect($model.getErrors()).toEqual({age: ['must be less than 120'], name: ['is too short (minimum is 3 characters)']});
         }
         // Автовалидация выбранных аттрибутов
         try {
-            await $model.doRequest({}, ['name']);
+            await $model.doRequest({}, ['age']);
         } catch (e) {
             expect(e).toEqual('Before request validation failed');
-            expect($model.errors.value).toEqual({name: ['required']});
+            expect($model.getErrors()).toEqual({age: ['must be less than 120']});
         }
+    });
+});
+
+describe('Валидация на стороне сервера', () => {
+    test('422 Ошибка', async () => {
+        axios.request.mockRejectedValue({
+            response: {
+                status: 422,
+                data: [
+                    {field: 'dob', message: 'Date of Birth is required'}
+                ]
+            }
+        });
+        const $model = new TestModel();
+        try {
+            await $model.doRequest({url: 'myapi'});
+        } catch (e) {
+            expect($model.hasErrors()).toBeTruthy();
+            expect($model.getErrors()).toEqual({dob: ['Date of Birth is required']});
+            expect($model.getFirstErrorMessage()).toEqual('Date of Birth is required');
+        }
+    });
+
+    test('500 Ошибка', async () => {
+        axios.request.mockRejectedValue({
+            response: {
+                status: 500, data: {message: 'Internal Server Error'}
+            }
+        });
+        const $model = new TestModel();
+        try {
+            await $model.doRequest({url: 'myapi'});
+        } catch (e) {
+            // Ошибка не является ошибкой валидации
+            expect($model.hasErrors()).toBeFalsy();
+            expect(e).toEqual('Internal Server Error');
+            expect($model.getProxy().errorMessage).toEqual('Internal Server Error');
+        }
+    });
+});
+
+
+describe('CRUD rest api', () => {
+    test('Fetch', (done) => {
+        const $model = new TestModel();
+        expect($model.isPhantom()).toBeTruthy();
+
+        $model.getProxy().doRequest = jest.fn().mockResolvedValue({dob: '2000-02-03', name: 'Mike'});
+        $model.on(TestModel.EVENT_FETCH, ($data) => {
+            expect($model.getProxy().doRequest).toHaveBeenNthCalledWith(1, {method: 'GET', url: 'test-model/55'});
+            expect($model.isPhantom()).toBeFalsy();
+            expect($data).toMatchObject({dob: '2000-02-03', name: 'Mike'});
+            expect($model.getAttributes()).toMatchObject({dob: new Date('2000-02-03'), name: 'Mike'});
+            done();
+        });
+        $model.fetch(55);
+    });
+
+    test('Create', (done) => {
+        const $model = new TestModel({created_at: '2022-03-11T01:33:07', id: 55});
+        expect($model.isPhantom()).toBeTruthy();
+
+        $model.getProxy().doRequest = jest.fn().mockResolvedValue({dob: '2000-02-03', name: 'Mike', id: 55});
+        $model.on(TestModel.EVENT_CREATE, ($data) => {
+            expect($data).toMatchObject({dob: '2000-02-03', name: 'Mike', id: 55});
+            expect($model.isPhantom()).toBeFalsy();
+            expect($model.isDirty()).toBeFalsy();
+            expect($model.getAttributes()).toMatchObject({dob: new Date('2000-02-03'), name: 'Mike'});
+            expect($model.getAttributes(null, false)).toMatchObject({dob: new Date('2000-02-03'), name: 'Mike'});
+            expect($model.getProxy().doRequest).toHaveBeenNthCalledWith(1, {
+                method: 'POST'
+                , url: 'test-model'
+                , data: {
+                    "age": null,
+                    "created_at": "2022-03-11 01:33:07",
+                    "dob": null,
+                    "id": 55,
+                    "name": "",
+                }
+            });
+            done();
+        });
+        $model.create();
+    });
+
+    test('Update', (done) => {
+        const $model = new TestModel({created_at: '2022-03-11T01:33:07', name: 'Xoxa', id: 18});
+        expect($model.isDirty()).toBeFalsy();
+
+        $model.getProxy().doRequest = jest.fn().mockResolvedValue({name: 'Mike'});
+        $model.setAttribute('name', 'Evgeny');
+        expect($model.getAttribute('name', false)).toEqual('Xoxa');
+        expect($model.getAttribute('name')).toEqual('Evgeny');
+        expect($model.isDirty()).toBeTruthy();
+
+        $model.on(TestModel.EVENT_SAVE, ($data) => {
+            expect($data).toMatchObject({name: 'Mike'});
+            expect($model.isDirty()).toBeFalsy();
+            expect($model.getAttribute('name', false)).toEqual('Mike');
+            expect($model.getAttribute('name')).toEqual('Mike');
+
+            expect($model.getProxy().doRequest).toHaveBeenNthCalledWith(1, {
+                method: 'PUT'
+                , url: 'test-model/18'
+                , data: {
+                    "name": "Evgeny",
+                }
+            });
+            done();
+        });
+
+        $model.save();
+    });
+
+
+    test('Delete', (done) => {
+        const $model = new TestModel({id: 16});
+        $model.getProxy().doRequest = jest.fn().mockResolvedValue(null);
+        $model.on(TestModel.EVENT_DELETE, () => {
+            expect($model.isDeleted()).toBeTruthy();
+            expect($model.getProxy().doRequest).toHaveBeenNthCalledWith(1, {method: 'DELETE', url: 'test-model/16'});
+            done();
+        });
+        $model.delete();
+
     });
 });

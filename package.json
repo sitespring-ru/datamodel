@@ -1,10 +1,12 @@
 {
     "name": "@sitespring/datamodel",
-    "version": "1.0.2",
-    "description": "Базовые классы для работы с данными: Model, Store, Proxy, использующие реактивность vue3",
+    "version": "2.0.0",
+    "description": "Базовые классы для работы с данными: Model, Store, Proxy",
     "main": "index.js",
     "scripts": {
-        "test": "jest"
+        "test": "jest",
+        "docs": "npx jsdoc src -d docs",
+        "build": "babel src -d lib"
     },
     "author": "Evgeny Shevcov",
     "private": true,
@@ -16,22 +18,17 @@
         "@babel/preset-env": "^7.15.8",
         "axios": "^0.23.0",
         "babel": "^6.23.0",
+        "dayjs": "^1.10.8",
         "lodash": "^4.17.21",
         "mitt": "^3.0.0",
-        "validate.js": "^0.13.1",
-        "vue": "^3.2.20"
+        "validate.js": "^0.13.1"
     },
     "devDependencies": {
+        "@babel/cli": "^7.17.6",
+        "@babel/core": "^7.17.8",
         "babel-jest": "^27.2.5",
         "jest": "^27.2.5",
+        "jsdoc": "^3.6.10",
         "ts-jest": "^27.0.6"
-    },
-    "jest": {
-        "transform": {
-            "^.+\\.[t|j]sx?$": "babel-jest"
-        },
-        "moduleNameMapper": {
-            "^@/(.*)$": "<rootDir>/src/$1"
-        }
     }
 }

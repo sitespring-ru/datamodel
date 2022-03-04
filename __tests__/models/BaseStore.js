@@ -4,9 +4,8 @@
  * @licence Proprietary
  */
 import axios from "axios";
-import BaseModel from "../../src/models/BaseModel";
-import BaseStore from "../../src/models/BaseStore";
-import {watch} from "vue";
+import BaseModel from "../../src/BaseModel";
+import BaseStore from "../../src/BaseStore";
 
 
 // Эмулируем модуль целиком
@@ -15,141 +14,212 @@ jest.mock('axios');
 // @see https://stackoverflow.com/questions/51393952/mock-inner-axios-create
 axios.create.mockReturnThis();
 
-class TestModel extends BaseModel {
-    defaults() {
+class PersonTestModel extends BaseModel {
+    fields() {
         return {
-            ...super.defaults(),
+            ...super.fields(),
             name: null,
             age: null
         };
     }
 }
 
-class TestStore extends BaseStore {
-    static getDefaultConfig() {
-        return {
-            ...super.getDefaultConfig(),
-            model: {
-                class: TestModel
-            }
-        }
+class PersonsTestStore extends BaseStore {
+    model = {
+        class: PersonTestModel
     }
 }
 
 
 describe('Работа с моделями', () => {
-    test('Добавление в конструкторе', () => {
-        const $model = new TestModel({name: 'xoxa', age: 37});
-        const $store = new TestStore([$model, {name: 'foo'}, {name: 'xoxa', age: 37}, {name: 'xoxa', age: 37}]);
-        expect($store.count.value).toEqual(4);
-    });
+    test('Добавление', (done) => {
+        const $model = new PersonTestModel({name: 'xoxa', age: 37});
+        const $store = new PersonsTestStore();
+        $store.loadModels([{name: 'foo'}, {name: 'xoxa', age: 37}, {name: 'xoxa', age: 37}]);
 
-    test('Добавление через метод', () => {
-        const $store = new TestStore([], {pageSize: 0});
-        let $model = new TestModel({name: 'xoxa', age: 37});
+        $store.on(PersonsTestStore.EVENT_MODELS_CHANGE, (modelsChanged) => {
+            expect($store.getCount()).toEqual(4);
+            expect($store.findById($model.getId()).getAttributes()).toMatchObject({name: 'xoxa', age: 37});
+            expect(modelsChanged).toEqual([$model]);
+            done();
+        });
+
         $store.loadModel($model);
-        expect($store.count.value).toEqual(1);
 
-        $model = $store.loadModel({name: 'foo'});
-        expect($store.count.value).toEqual(2);
-
-        // Добавление повторно Модели
-        $store.loadModel($model);
-        expect($store.getCount()).toEqual(2);
     });
 
     test('Удаление', (done) => {
-        const $store = new TestStore([{name: 'xoxa', age: 37}, {name: 'xoxa', age: 37}]);
+        const $store = new PersonsTestStore();
         let $model = $store.loadModel({name: 'xoxa', age: 37});
-        expect($store.getCount()).toEqual(3);
+        expect($store.getCount()).toEqual(1);
+        expect($store.isEmpty()).toBeFalsy();
 
-        // Одновременно тестируем Реактивность стека моделей при удалении
-        watch($store.models, (models) => {
-            expect(models).toHaveLength(2);
+        $store.on($store.constructor.EVENT_MODELS_REMOVED, ($modelsRemoved) => {
+            expect($modelsRemoved).toEqual([$model]);
             done();
         });
-        $store.remove($model);
-        expect($store.models.value).toHaveLength(2);
+
+        expect($store.remove($model)).toBeTruthy();
+        expect($store.getCount()).toEqual(0);
+        expect($store.isEmpty()).toBeTruthy();
     });
+
 
     test('Очищение', () => {
-        let $model = new TestModel({name: 'xoxa', age: 37});
-        const $store = new TestStore([$model]);
+        /** @type {PersonsTestStore} $store */
+        const $store = PersonsTestStore.createInstance({isPaginated: true, pageSize: 2});
+        $store.loadModels([{name: 'xoxa1', age: 37}, {name: 'xoxa2', age: 37}, {name: 'xoxa3', age: 37}]);
 
-        expect($store.isEmpty.value).toBeFalsy();
+        expect($store.isEmpty()).toBeFalsy();
+        expect($store.getPagination().perPage).toEqual(2);
+        expect($store.getPagination().pageCount).toEqual(2);
         $store.clear();
-        expect($store.isEmpty.value).toBeTruthy();
+        expect($store.isEmpty()).toBeTruthy();
+        expect($store.getPagination().perPage).toEqual(2);
+        expect($store.getPagination().pageCount).toEqual(1);
     });
 
-    test('Поиск', () => {
-        const $model = new TestModel({id: 666, name: 'xoxa1', age: 11});
-        const $store = new TestStore([$model]);
-        const $modelPhantom = $store.loadModel({name: 'xoxa2', age: 22});
 
-        expect($store.findById(666).getId()).toEqual($model.getId());
-        expect($store.find({age: 22}).getId()).toEqual($modelPhantom.getId());
+    test('Поиск', () => {
+        const $store = new PersonsTestStore();
+        $store.loadModels({id: 1, name: 'xoxa1', age: 11});
+        const $model = $store.loadModel({id: 2, name: 'xoxa2', age: 22});
+
+        expect($store.findById(2)).toEqual($model);
+        expect($store.find({age: 22}).getId()).toEqual(2);
         expect($store.find({name: 'bobr'})).toBeFalsy();
-        expect($store.find((model) => model.attributes.name === 'xoxa2').getId()).toEqual($modelPhantom.getId());
+        expect($store.find((model) => model.getAttribute('name') === 'xoxa2')).toEqual($model);
     });
 
 
     test('Сериализация моделей в массив', () => {
-        const $store = new TestStore([{id: 666, name: 'xoxa1', age: 11}, {id: 1, name: 'xoxa2'}, {id: 2, age: 33}]);
-        const modelsArray = $store.toArray();
-        expect(modelsArray).toEqual([{id: 666, name: 'xoxa1', age: 11}, {id: 1, name: 'xoxa2'}, {id: 2, age: 33}]);
+        const data = [{id: 666, name: 'xoxa1', age: 11}, {id: 1, name: 'xoxa2'}, {id: 2, age: 33}];
+        const expected = [{id: 666, name: 'xoxa1', age: 11}, {id: 1, name: 'xoxa2', age: null}, {id: 2, name: null, age: 33}];
+        const $store = new PersonsTestStore();
+        $store.loadModels(data);
+        expect($store.toArray()).toEqual(expected);
     });
 
     test('Суммирование ИТОГО', () => {
-        const $store = new TestStore([{id: 666, name: 'xoxa1', age: 11}, {id: 1, name: 'xoxa2'}, {id: 2, age: 33}]);
+        const $store = new PersonsTestStore();
+        $store.loadModels([{id: 666, name: 'xoxa1', age: 11}, {id: 1, name: 'xoxa2'}, {id: 2, age: 33}]);
         expect($store.sumBy('age')).toEqual(44);
     })
 
-    test('Загрузка с сервера', async () => {
-        const $store = new TestStore([], {fetchUrl: 'https://api.com'});
+    test('Загрузка с сервера', (done) => {
+        /** @type {PersonsTestStore} $store */
+        const $store = PersonsTestStore.createInstance({fetchUrl: 'https://api.com'});
+        const mockModels = [
+            {id: 1, name: 'foo'},
+            {id: 2, name: 'xoxa1', age: 37}
+        ];
+        $store.doRequest = jest.fn().mockResolvedValue(mockModels);
+
+        $store.on($store.constructor.EVENT_FETCH, (data) => {
+            expect(data).toEqual(mockModels);
+            expect($store.doRequest).toHaveBeenCalledTimes(1);
+            expect($store.isFetched()).toBeTruthy();
+            done();
+        });
+        $store.fetch();
+    });
+
+    test('Загрузка с сервера один раз', async () => {
+        /** @type {PersonsTestStore} $store */
+        const $store = PersonsTestStore.createInstance({fetchUrl: 'https://api.com'});
         $store.doRequest = jest.fn();
+
         await $store.ensureFetched();
         expect($store.doRequest).toHaveBeenCalledWith({url: 'https://api.com', params: {}});
+
         await $store.ensureFetched();
+        // Второй раз не был вызван запрос
         expect($store.doRequest).toHaveBeenCalledTimes(1);
-        expect($store.isFetched.value);
+        expect($store.isFetched()).toBeTruthy();
+    });
+
+
+    test('Перезагрузка', (done) => {
+        /** @type {PersonsTestStore} $store */
+        const $store = PersonsTestStore.createInstance({fetchUrl: 'https://api.com'});
+        const mockModels = [
+            {id: 1, name: 'foo'},
+            {id: 2, name: 'xoxa1', age: 37}
+        ];
+        $store.doRequest = jest.fn().mockResolvedValue(mockModels);
+
+        $store.on($store.constructor.EVENT_FETCH, (data) => {
+            expect(data).toEqual(mockModels);
+            expect($store.doRequest).toHaveBeenCalledTimes(1);
+            expect($store.isFetched()).toBeTruthy();
+            done();
+        });
+        $store.reload();
     });
 });
 
 
 describe('Работа с фильтрами', () => {
     test('Добавление и удаление через конструктор', () => {
-        let $store = new TestStore([], {
+        /** @type {PersonsTestStore} */
+        let $store = PersonsTestStore.createInstance({
             filters: {
-                id1: {property: 'age'}
+                byAge: {property: 'age'}
             }
         });
+        expect($store.getFilters()).toEqual({
+            byAge: {property: 'age', operator: "=", value: true}
+        });
         expect($store.hasFilters()).toBeTruthy();
-        expect($store.filtersCount.value).toEqual(1);
-    });
-    test('Добавление и удаление через метод', () => {
-        let $store = new TestStore();
-        $store.addFilter('id1', {property: 'age'});
-        expect($store.hasFilters()).toBeTruthy();
-        expect($store.filtersCount.value).toEqual(1);
+        expect($store.getFiltersCount()).toEqual(1);
+
+        // Напрямую через setter как в куонструторе
+        expect(() => $store.filters = {id3: {direction: 'huyEgoZnaet'}})
+            .toThrowError('Filter`s property must be set');
 
         $store.dropAllFilters();
         expect($store.hasFilters()).toBeFalsy();
-        expect($store.filtersCount.value).toEqual(0);
+        expect($store.getFiltersCount()).toEqual(0);
+    });
 
-        expect(() => $store.addFilter('id1', {noprop: 'invalid'})).toThrowError('Filters property must be set');
+    test('Добавление через метод', (done) => {
+        let $store = new PersonsTestStore();
+        $store.on($store.constructor.EVENT_FILTERS_CHANGE, ({newFilters}) => {
+            expect($store.hasFilters()).toBeTruthy();
+            expect($store.getFiltersCount()).toEqual(1);
+            expect(newFilters).toEqual({
+                id1: {property: 'age', operator: "=", value: true}
+            });
+            done();
+        });
+        $store.addFilter('id1', {property: 'age'});
+    });
+
+
+    test('Удаление через метод', (done) => {
+        let $store = new PersonsTestStore();
+        $store.addFilter('byAge', {property: 'age'});
+        $store.on($store.constructor.EVENT_FILTERS_CHANGE, ({newFilters, oldFilters}) => {
+            expect($store.getFiltersCount()).toEqual(0);
+            expect(newFilters).toEqual({});
+            expect(oldFilters).toEqual({byAge: {property: 'age', operator: "=", value: true}});
+            done();
+        });
+        // Не вызовет события
+        $store.removeFilter('notExists');
+        // Вызовет событие
+        $store.removeFilter('byAge');
     });
 
     test('Фильтрация на стороне сервера', async () => {
-        let $store = new TestStore([], {fetchUrl: 'https://api.com'});
+        /** @type {PersonsTestStore} */
+        let $store = PersonsTestStore.createInstance({fetchUrl: 'https://api.com'});
         $store.setFilters({
             byAge: {property: 'age', value: 16, operator: '>='},
             byName: {property: 'name'}
         });
         $store.doRequest = jest.fn();
-        try {
-            await $store.fetch();
-        } catch (e) {
-        }
+        await $store.fetch();
         expect($store.doRequest).toHaveBeenCalledWith({
             url: 'https://api.com',
             params: {
@@ -157,41 +227,88 @@ describe('Работа с фильтрами', () => {
             }
         });
     });
+
+    test('Авто фильтрация', async () => {
+        /** @type {PersonsTestStore} */
+        let $store = PersonsTestStore.createInstance({autoFilter: true});
+        $store.doRequest = jest.fn();
+
+        await $store.addFilter('byName', {property: 'name'});
+        expect($store.doRequest).toHaveBeenCalledWith({
+            url: null,
+            params: {
+                filters: [{property: 'name', operator: '=', value: true}]
+            }
+        });
+
+        $store.setFilters({
+            byAge: {property: 'age', value: 16, operator: '>='},
+            byName: {property: 'name'}
+        });
+        expect($store.doRequest).toHaveBeenCalledWith({
+            url: null,
+            params: {
+                filters: [{property: 'age', value: 16, operator: '>='}, {property: 'name', operator: '=', value: true}]
+            }
+        });
+
+        $store.dropAllFilters();
+        expect($store.doRequest).toHaveBeenCalledWith({
+            url: null,
+            params: {}
+        });
+    });
 });
 
 
 describe('Работа с сортировкой', () => {
-    test('Добавление и удаление через конструктор', () => {
-        let $store = new TestStore([], {
+    test('Через конструктор', () => {
+        /** @type {PersonsTestStore} */
+        let $store = PersonsTestStore.createInstance({
             sorters: {
                 id1: {property: 'age', direction: 'desc'}
             }
         });
-        expect($store.sortersCount.value).toEqual(1);
-    });
-    test('Добавление и удаление через метод', () => {
-        let $store = new TestStore();
-        $store.addSorter({property: 'age'});
-        expect($store.sortersCount.value).toEqual(1);
+        expect($store.getSortersCount()).toEqual(1);
+        expect($store.hasSorters()).toBeTruthy();
+        expect(() => $store.addSorter('id2', {noprop: 'invalid'})).toThrowError('Sorter`s property must be set');
+        // Напрямую через setter как в куонструторе
+        expect(() => $store.sorters = {id3: {property: 'invalid', direction: 'huyEgoZnaet'}})
+            .toThrowError("Invalid sorter's direction definition huyEgoZnaet. Expect asc or desc");
 
         $store.dropAllSorters();
-        expect($store.sortersCount.value).toEqual(0);
+        expect($store.hasSorters()).toBeFalsy();
+        expect($store.getSortersCount()).toEqual(0);
+    });
 
-        expect(() => $store.addSorter({noprop: 'invalid'}))
-            .toThrowError('Expect sorter`s property');
-        expect(() => $store.setSorters([{property: 'invalid', direction: 'huyEgoZnaet'}]))
-            .toThrowError("Invalid sorter's direction definition huyEgoZnaet. Expect 'asc' or 'desc'");
+    test('Добавление метод', (done) => {
+        let $store = new PersonsTestStore();
+        $store.on($store.constructor.EVENT_SORTERS_CHANGE, ({newSorters, oldSorters}) => {
+            expect($store.getSortersCount()).toEqual(1);
+            expect(newSorters).toEqual($store.getSorters());
+            expect(newSorters).toEqual({byAge: {property: 'age', direction: 'asc'}});
+            done();
+        });
+        $store.addSorter('byAge', {property: 'age'});
+    });
 
+    test('Удаление через метод', (done) => {
+        let $store = new PersonsTestStore();
+        $store.addSorter('byAge', {property: 'age'});
+        $store.on($store.constructor.EVENT_SORTERS_CHANGE, ({newSorters, oldSorters}) => {
+            expect($store.getSortersCount()).toEqual(0);
+            expect(newSorters).toEqual({});
+            expect(oldSorters).toEqual({byAge: {property: 'age', direction: 'asc'}});
+            done();
+        });
+        $store.removeSorter('byAge');
     });
 
     test('Сортировка на стороне сервера', async () => {
-        let $store = new TestStore([], {fetchUrl: 'https://api.com'});
-        $store.setSorters([{property: 'age', direction: 'desc'}, {property: 'name'}]);
+        let $store = PersonsTestStore.createInstance({fetchUrl: 'https://api.com'});
+        $store.setSorters({age: {property: 'age', direction: 'desc'}, name: {property: 'name'}});
         $store.doRequest = jest.fn();
-        try {
-            await $store.fetch();
-        } catch (e) {
-        }
+        await $store.fetch();
         expect($store.doRequest).toHaveBeenCalledWith({
             url: 'https://api.com',
             params: {
@@ -199,31 +316,111 @@ describe('Работа с сортировкой', () => {
             }
         });
     });
+
+    test('Авто сортировка', async () => {
+        /** @type {PersonsTestStore} */
+        let $store = PersonsTestStore.createInstance({autoSort: true});
+        $store.doRequest = jest.fn();
+
+        await $store.addSorter('byName', {property: 'name'});
+        expect($store.doRequest).toHaveBeenCalledWith({
+            url: null,
+            params: {
+                sort: "name"
+            }
+        });
+
+        $store.setSorters({
+            byAge: {property: 'age', direction: $store.constructor.SORT_DESC},
+            byName: {property: 'name'}
+        });
+        expect($store.doRequest).toHaveBeenCalledWith({
+            url: null,
+            params: {
+                sort: "-age,name"
+            }
+        });
+
+        $store.dropAllSorters();
+        expect($store.doRequest).toHaveBeenCalledWith({
+            url: null,
+            params: {}
+        });
+    });
 });
 
 
 describe('Пагинация', () => {
-    const mockModels = [{name: 'foo'}, {name: 'xoxa1', age: 37}, {name: 'xoxa2', age: 27}, {name: 'xoxa3', age: 57}, {name: 'xoxa4', age: 137},];
+    const mockModels = [
+        {id: 1, name: 'foo'},
+        {id: 2, name: 'xoxa1', age: 37},
+        {id: 3, name: 'xoxa2', age: 27},
+        {id: 4, name: 'xoxa3', age: 57},
+        {id: 5, name: 'xoxa4', age: 137}
+    ];
+    const modelsToData = ($models) => $models.map($model => $model.getAttributes());
 
-    test('На стороне клиента', () => {
-        const $store = new TestStore(mockModels, {isPaginated: true, pageSize: 2});
-        expect($store.pagination).toEqual({
+    test('Работа с локальными данными', () => {
+        const $store = PersonsTestStore.createInstance({isPaginated: true, pageSize: 2});
+        $store.loadModels(mockModels);
+        expect($store.getPagination()).toEqual({
             currentPage: 3,
             perPage: 2,
             totalCount: 5,
             pageCount: 3
         });
+
+        $store.setPageNumber(2);
+        expect(modelsToData($store.getModels())).toEqual(mockModels.slice(2, 4));
+
+        $store.setPageNumber(3);
+        expect(modelsToData($store.getModels())).toEqual(mockModels.slice(4, 6));
     });
 
-    test('На стороне сервера', async () => {
-        // Пусть Хранилище имеет 2 модели при инициализации, его текущая страница будет 1
-        const $store = new TestStore(mockModels.slice(0, 2), {isPaginated: true, pageSize: 2});
+    test('Проверка свойства', () => {
+        const $store = PersonsTestStore.createInstance({isPaginated: true});
+        expect($store.hasPagination()).toBeTruthy();
+
+        $store.isPaginated = false;
+        expect($store.hasPagination()).toBeFalsy();
+    });
+
+
+    test('Изменение размера страницы', (done) => {
+        /** @type {PersonsTestStore} */
+        const $store = PersonsTestStore.createInstance({isPaginated: true, pageSize: 2});
+        $store.loadModels(mockModels);
+        expect($store.getPageNumber()).toEqual(3);
+
+        $store.on($store.constructor.EVENT_PAGINATION_CHANGE, ({oldPagination, newPagination}) => {
+            expect(oldPagination).toEqual({
+                currentPage: 3,
+                perPage: 2,
+                totalCount: 5,
+                pageCount: 3
+            });
+            expect(newPagination).toEqual({
+                currentPage: 2,
+                perPage: 3,
+                totalCount: 5,
+                pageCount: 2
+            });
+            expect($store.getPageNumber()).toEqual(2);
+            expect(modelsToData($store.getModels())).toEqual(mockModels.slice(3, 6));
+            done();
+        });
+
+        $store.setPageSize(3);
+    });
+
+    test('Получение с сервера', async () => {
+        const $store = PersonsTestStore.createInstance({isPaginated: true, pageSize: 2});
         //  Сервер вернет след страницу данных
         $store.doRequest = jest.fn().mockResolvedValue({
             data: {
                 data: mockModels.slice(2, 4),
                 _meta: {
-                    currentPage: 2,
+                    currentPage: 1,
                     perPage: 2,
                     totalCount: 5,
                     pageCount: 3
@@ -231,15 +428,14 @@ describe('Пагинация', () => {
             }
         });
         // Хранилище еще не загружалось удаленно
-        expect($store.isFetched.value).toBeFalsy();
+        expect($store.isFetched()).toBeFalsy();
         // Здесь хранилище еще не было загружено, поэтому true
-        expect($store.hasNextPage.value).toBeTruthy();
+        expect($store.hasNextPage()).toBeTruthy();
 
         await $store.fetch();
-        expect($store.doRequest).toHaveBeenCalledWith({url: null, params: {limit: 2, page: 2}});
-        expect($store.count.value).toEqual(4);
-        expect($store.hasNextPage.value).toBeTruthy();
-
+        expect($store.doRequest).toHaveBeenCalledWith({url: null, params: {limit: 2, page: 1}});
+        expect($store.getCount()).toEqual(2);
+        expect($store.hasNextPage()).toBeTruthy();
 
         //  Сервер вернет послед. страницу данных
         $store.doRequest = jest.fn().mockResolvedValue({
@@ -252,14 +448,14 @@ describe('Пагинация', () => {
             }
         });
         await $store.fetch();
-        expect($store.doRequest).toHaveBeenCalledWith({url: null, params: {limit: 2, page: 3}});
-        expect($store.count.value).toEqual(5);
+        expect($store.doRequest).toHaveBeenCalledWith({url: null, params: {limit: 2, page: 2}});
+        expect($store.getCount()).toEqual(3);
         // Были загружены все модели
-        expect($store.hasNextPage.value).toBeFalsy();
+        expect($store.hasNextPage()).toBeFalsy();
 
         $store.clear();
-        expect($store.pagination.currentPage).toEqual(1);
-        expect($store.isEmpty.value).toBeTruthy();
-        expect($store.hasNextPage.value).toBeTruthy();
+        expect($store.getPageNumber()).toEqual(1);
+        expect($store.isEmpty()).toBeTruthy();
+        expect($store.hasNextPage()).toBeTruthy();
     });
 });

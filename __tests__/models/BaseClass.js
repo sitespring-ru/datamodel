@@ -3,72 +3,35 @@
  * @homepage https://sitespring.ru
  * @licence Proprietary
  */
-import BaseClass from "@/models/BaseClass.js";
+import BaseClass from "../../src/BaseClass";
 
-BaseClass.getDefaultConfig = jest.fn(() => ({
-    mother: 'fucker'
-}));
-
-beforeEach(() => {
-    BaseClass.dropDefaultsChanged();
-});
+class BaseTestClass extends BaseClass {
+    mother = 'fucker';
+    foo = {
+        bar: 'baz'
+    }
+}
 
 test('Конфигурация через конcтруктор', () => {
-    let $baseClass;
-
-    // Пустой
-    $baseClass = new BaseClass();
-    expect($baseClass.getConfig()).toMatchObject({mother: 'fucker'});
-
-    // Расширяем
-    $baseClass = new BaseClass({foo: {bar: 'baz'}});
-    expect($baseClass.getConfig()).toMatchObject({mother: 'fucker', foo: {bar: 'baz'}});
-    expect($baseClass.getConfig('foo.bar')).toEqual('baz');
-
-    // Переопределяем конфиг
-    $baseClass = new BaseClass({mother: 'hooker'});
-    expect($baseClass.getConfig()).toMatchObject({mother: 'hooker'});
+    const $baseClass = new BaseTestClass({foo: {bar: 'boo'}});
+    // Значение осталось прежним, т.к. конструктор вызывался в контексте родителя (BaseClass)
+    expect($baseClass.foo).toMatchObject({bar: 'baz'});
 });
 
 
-test('Смена конфигурации с ключом + событие', (done) => {
+test('Конфигурация через статический хелпер', () => {
+    /** @type {BaseTestClass} */
+    const $baseClass = BaseTestClass.createInstance({foo: {bar: 'boo'}});
+    expect($baseClass.foo).toMatchObject({bar: 'boo'});
+    expect($baseClass.mother).toMatch('fucker');
+})
+
+
+test('Попытка задать несуществующее свойство', () => {
     let $baseClass;
-    $baseClass = new BaseClass({some: ['another', 'config']});
-
-    // Вешаем обработчик
-    $baseClass.on(BaseClass.EVENT_CONFIG_CHANGE, (e) => {
-        expect(e).toMatchObject({path: 'some.another', value: 'huy'});
-        done();
-    });
-
-    // Не должен вызвать изменений
-    $baseClass.setConfig('mother', 'fucker');
-    // Должен вызвать изменения
-    $baseClass.setConfig('some.another', 'huy');
-});
-
-
-test('Меняем конфигурацию глобально', () => {
-    // Перед созданием экземпляра
-    BaseClass.setDefaultConfig('global', 'scope...');
-    const $baseClass = new BaseClass();
-    expect($baseClass.getConfig())
-        .toMatchObject({
-            mother: 'fucker',
-            global: 'scope...'
-        });
-
-    BaseClass.setDefaultConfig('global.scope', 'changed');
-    expect($baseClass.getConfig()).toMatchObject({
-        mother: 'fucker',
-        global: {
-            scope: 'changed'
-        }
-    });
-    expect($baseClass.getConfig('global')).toMatchObject({
-        scope: 'changed'
-    });
-    expect($baseClass.getConfig('mother')).toMatch("fucker");
+    $baseClass = new BaseTestClass({'no': 'baz'});
+    expect($baseClass.no).toEqual('baz');
+    expect(() => BaseTestClass.createInstance({'class': BaseTestClass, 'no': 'baz'})).toThrowError('Unknown property "no"');
 });
 
 
@@ -77,18 +40,13 @@ test('Строковое представление', () => {
     expect($baseClass + '').toEqual('BaseClass');
 });
 
-
-test('Конструктор', () => {
-    const $baseClass = BaseClass.createInstance({
-        class: BaseClass,
-        foo: 'bar',
-        any: 'data'
+test('Деструктуризация', () => {
+    const $baseClass = new BaseClass();
+    // force create emitter instance
+    $baseClass.on('foo', () => {
+        throw new Error('This shouldn`t be called');
     });
-
-    expect($baseClass).toBeInstanceOf(BaseClass);
-    expect($baseClass.getConfig()).toEqual({
-        mother: 'fucker',
-        foo: 'bar',
-        any: 'data'
-    });
+    $baseClass.destroy();
+    expect($baseClass.__emitterInstance).toBeNull();
+    $baseClass.emit('foo');
 });

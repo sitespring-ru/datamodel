@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: BaseClass.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: BaseClass.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import {forEach, hasIn, isEmpty, omit, set} from "lodash";
+import mitt from "mitt";
+
+/**
+ * Базовый класс поддерживающий конфигурацию и события
+ *
+ * @author Evgeny Shevtsov, info@sitespring.ru
+ * @homepage https://sitespring.ru
+ * @licence Proprietary
+ */
+export default class BaseClass {
+    /**
+     * @param {?Object} [$config] Объект конфигурации Конструктора
+     * */
+    constructor($config = {}) {
+        if (!isEmpty($config)) {
+            Object.assign(this, $config);
+        }
+        this.init(arguments);
+    }
+
+
+    /**
+     * Хук инициализации Класса
+     * */
+    init() {
+    }
+
+
+    /**
+     * Хелпер для создания экземпляра класса
+     * @param {?Object} [defs] Объект содержащий ключ class который определяет конструктор
+     * @return {BaseClass|BaseStore|BaseProxy|BaseModel|Object} экземпляр класса
+     * */
+    static createInstance(defs = {}) {
+        const constructorName = defs.class || this;
+        if (!constructorName) {
+            throw new Error('The "class" property must be present');
+        }
+        const instance = new constructorName();
+        const props = omit(defs, 'class');
+        if (!isEmpty(props)) {
+            forEach(props, (val, prop) => {
+                if (!hasIn(instance, prop)) {
+                    throw new Error(`Unknown property "${prop}"`);
+                }
+                set(instance, prop, val);
+            })
+        }
+        return instance;
+    }
+
+
+    /**
+     * По умолчанию представляет имя класса
+     * @inheritDoc
+     * */
+    toString() {
+        // Если не задан name возвращаем по дефолту [object Object]
+        return this.constructor.name || super.toString();
+    }
+
+
+    /**
+     * Экземпляр Emitter-а
+     * @typedef {Object} Emitter
+     * @property {Function} on
+     * @property {Function} off
+     * @property {Function} emit
+     * @property {Object} all
+     *
+     * @see https://github.com/developit/mitt
+     * */
+
+    /**
+     * Создаем экземпляр Emitter`a
+     * Таким образом экземпляр Emitter-а создается при первом вызове метода, а не при создании класса
+     * @return {Emitter}
+     * */
+    getEmitter() {
+        if (!this.__emitterInstance) {
+            this.__emitterInstance = new mitt();
+        }
+        return this.__emitterInstance;
+    }
+
+
+    /**
+     * Register an event handler for the given type.
+     * @see https://github.com/developit/mitt
+     *
+     * @param {string|symbol} $event Type of event to listen for, or '*' for all events
+     * @param {Function} $handler Function to call in response to given event
+     * @return void
+     * */
+    on($event, $handler) {
+        this.getEmitter().on($event, $handler);
+    }
+
+
+    /**
+     * Remove an event handler for the given type. If handler is omitted, all handlers of the given type are removed.
+     * @see https://github.com/developit/mitt
+     *
+     * @param {string|symbol} $event Type of event to listen for, or '*' for all events
+     * @param {Function} $handler Function to call in response to given event
+     * @return void
+     * */
+    off($event, $handler) {
+        this.getEmitter().off($event, $handler);
+    }
+
+
+    /**
+     * Invoke all handlers for the given type. If present, '*' handlers are invoked after type-matched handlers.
+     * Note: Manually firing '*' handlers is not supported.
+     * @see https://github.com/developit/mitt
+     *
+     * @param {string|symbol} $event Type of event to listen for, or '*' for all events
+     * @param {?Any|*} [$data] Any value (object is recommended and powerful), passed to each handler
+     * @return void
+     * */
+    emit($event, $data = {}) {
+        this.getEmitter().emit($event, $data);
+    }
+
+
+    /**
+     * Хук метод для очищения ресурсов экземпляра Класса
+     * Должен вызываться вручную, т.к. js не имеет магического метода сборщика мусора при удалении Класса
+     * */
+    destroy() {
+        // Очищаем все события и слушателей Эмиттера
+        if (this.__emitterInstance) {
+            this.__emitterInstance.all.clear();
+            this.__emitterInstance = null;
+        }
+    }
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="module.html#.exports">exports</a></li></ul><h3>Events</h3><ul><li><a href="BaseModel.html#event:EVENT_CREATE">EVENT_CREATE</a></li><li><a href="BaseModel.html#event:EVENT_DELETE">EVENT_DELETE</a></li><li><a href="BaseModel.html#event:EVENT_FETCH">EVENT_FETCH</a></li><li><a href="BaseModel.html#event:EVENT_REQUEST_START">EVENT_REQUEST_START</a></li><li><a href="BaseModel.html#event:EVENT_SAVE">EVENT_SAVE</a></li><li><a href="BaseProxy.html#event:EVENT_REQUEST_END%25D0%25A1%25D0%25BE%25D0%25B1%25D1%258B%25D1%2582%25D0%25B8%25D0%25B5%25D0%25BF%25D1%2580%25D0%25B8%25D0%25BE%25D0%25BA%25D0%25BE%25D0%25BD%25D1%2587%25D0%25B0%25D0%25BD%25D0%25B8%25D0%25B8%25D0%25B7%25D0%25B0%25D0%25BF%25D1%2580%25D0%25BE%25D1%2581%25D0%25B0">EVENT_REQUEST_END Событие при окончании запроса</a></li><li><a href="BaseProxy.html#event:EVENT_REQUEST_FAILED%25D0%25A1%25D0%25BE%25D0%25B1%25D1%258B%25D1%2582%25D0%25B8%25D0%25B5%25D0%25BF%25D1%2580%25D0%25B8%25D0%25BE%25D1%2588%25D0%25B8%25D0%25B1%25D0%25BA%25D0%25B5">EVENT_REQUEST_FAILED Событие при ошибке</a></li><li><a href="BaseProxy.html#event:EVENT_REQUEST_START%25D0%25A1%25D0%25BE%25D0%25B1%25D1%258B%25D1%2582%25D0%25B8%25D0%25B5%25D0%25BF%25D1%2580%25D0%25B8%25D0%25BD%25D0%25B0%25D1%2587%25D0%25B0%25D0%25BB%25D0%25B5%25D0%25B7%25D0%25B0%25D0%25BF%25D1%2580%25D0%25BE%25D1%2581%25D0%25B0">EVENT_REQUEST_START Событие при начале запроса</a></li><li><a href="BaseProxy.html#event:EVENT_REQUEST_SUCCESS%25D0%25A1%25D0%25BE%25D0%25B1%25D1%258B%25D1%2582%25D0%25B8%25D0%25B5%25D0%25BF%25D1%2580%25D0%25B8%25D1%2583%25D1%2581%25D0%25BF%25D0%25B5%25D1%2585%25D0%25B5">EVENT_REQUEST_SUCCESS Событие при успехе</a></li><li><a href="BaseStore.html#event:EVENT_FETCH">EVENT_FETCH</a></li><li><a href="BaseStore.html#event:EVENT_FILTERS_CHANGE">EVENT_FILTERS_CHANGE</a></li><li><a href="BaseStore.html#event:EVENT_MODELS_CHANGE">EVENT_MODELS_CHANGE</a></li><li><a href="BaseStore.html#event:EVENT_MODELS_REMOVED">EVENT_MODELS_REMOVED</a></li><li><a href="BaseStore.html#event:EVENT_PAGINATION_CHANGE">EVENT_PAGINATION_CHANGE</a></li><li><a href="BaseStore.html#event:EVENT_SORTERS_CHANGE">EVENT_SORTERS_CHANGE</a></li></ul><h3>Global</h3><ul><li><a href="global.html#__parseResponseData">__parseResponseData</a></li><li><a href="global.html#_innerSetAttributes">_innerSetAttributes</a></li><li><a href="global.html#_internalApplyFilter">_internalApplyFilter</a></li><li><a href="global.html#_internalApplySorter">_internalApplySorter</a></li><li><a href="global.html#_parseModelsFromResponseData">_parseModelsFromResponseData</a></li><li><a href="global.html#_parsePaginationFromResponse">_parsePaginationFromResponse</a></li><li><a href="global.html#_parseResponseValidationErrors">_parseResponseValidationErrors</a></li><li><a href="global.html#_refreshPagination">_refreshPagination</a></li><li><a href="global.html#_serializeFiltersToRequestParams">_serializeFiltersToRequestParams</a></li><li><a href="global.html#_serializePaginationToRequestParams">_serializePaginationToRequestParams</a></li><li><a href="global.html#_serializeSortersToRequestParams">_serializeSortersToRequestParams</a></li><li><a href="global.html#addFilter">addFilter</a></li><li><a href="global.html#addSorter">addSorter</a></li><li><a href="global.html#applyFilter">applyFilter</a></li><li><a href="global.html#axiosDefaults">axiosDefaults</a></li><li><a href="global.html#clear">clear</a></li><li><a href="global.html#commitChanges">commitChanges</a></li><li><a href="global.html#create">create</a></li><li><a href="global.html#createInstance">createInstance</a></li><li><a href="global.html#delete">delete</a></li><li><a href="global.html#deserialize">deserialize</a></li><li><a href="global.html#destroy">destroy</a></li><li><a href="global.html#doRequest">doRequest</a></li><li><a href="global.html#dropAllFilters">dropAllFilters</a></li><li><a href="global.html#dropAllSorters">dropAllSorters</a></li><li><a href="global.html#dropErrors">dropErrors</a></li><li><a href="global.html#emit">emit</a></li><li><a href="global.html#ensureFetched">ensureFetched</a></li><li><a href="global.html#fetch">fetch</a></li><li><a href="global.html#fields">fields</a></li><li><a href="global.html#filters">filters</a></li><li><a href="global.html#filtersMap">filtersMap</a></li><li><a href="global.html#find">find</a></li><li><a href="global.html#findById">findById</a></li><li><a href="global.html#generateId">generateId</a></li><li><a href="global.html#get">get</a></li><li><a href="global.html#getAttributes">getAttributes</a></li><li><a href="global.html#getAxiosInstance">getAxiosInstance</a></li><li><a href="global.html#getCount">getCount</a></li><li><a href="global.html#getEmitter">getEmitter</a></li><li><a href="global.html#getErrors">getErrors</a></li><li><a href="global.html#getFilters">getFilters</a></li><li><a href="global.html#getFiltersCount">getFiltersCount</a></li><li><a href="global.html#getFirstErrorMessage">getFirstErrorMessage</a></li><li><a href="global.html#getId">getId</a></li><li><a href="global.html#getModels">getModels</a></li><li><a href="global.html#getPageNumber">getPageNumber</a></li><li><a href="global.html#getPagination">getPagination</a></li><li><a href="global.html#getProxy">getProxy</a></li><li><a href="global.html#getSavedAttribute">getSavedAttribute</a></li><li><a href="global.html#getSavedAttributes">getSavedAttributes</a></li><li><a href="global.html#getSorters">getSorters</a></li><li><a href="global.html#getSortersCount">getSortersCount</a></li><li><a href="global.html#getSubmitValues">getSubmitValues</a></li><li><a href="global.html#hasErrors">hasErrors</a></li><li><a href="global.html#hasFilters">hasFilters</a></li><li><a href="global.html#hasNextPage">hasNextPage</a></li><li><a href="global.html#hasPagination">hasPagination</a></li><li><a href="global.html#hasSorters">hasSorters</a></li><li><a href="global.html#init">init</a></li><li><a href="global.html#innerFilters">innerFilters</a></li><li><a href="global.html#isDeleted">isDeleted</a></li><li><a href="global.html#isDirty">isDirty</a></li><li><a href="global.html#isEmpty">isEmpty</a></li><li><a href="global.html#isFetched">isFetched</a></li><li><a href="global.html#isPhantom">isPhantom</a></li><li><a href="global.html#isRequesting">isRequesting</a></li><li><a href="global.html#loadModel">loadModel</a></li><li><a href="global.html#loadModels">loadModels</a></li><li><a href="global.html#off">off</a></li><li><a href="global.html#on">on</a></li><li><a href="global.html#populateBearerToken">populateBearerToken</a></li><li><a href="global.html#proxyConfig">proxyConfig</a></li><li><a href="global.html#reload">reload</a></li><li><a href="global.html#remove">remove</a></li><li><a href="global.html#removeFilter">removeFilter</a></li><li><a href="global.html#removeSorter">removeSorter</a></li><li><a href="global.html#resetAttributes">resetAttributes</a></li><li><a href="global.html#rules">rules</a></li><li><a href="global.html#save">save</a></li><li><a href="global.html#saveBearerToken">saveBearerToken</a></li><li><a href="global.html#serialize">serialize</a></li><li><a href="global.html#setAttribute">setAttribute</a></li><li><a href="global.html#setAttributes">setAttributes</a></li><li><a href="global.html#setErrors">setErrors</a></li><li><a href="global.html#setFilters">setFilters</a></li><li><a href="global.html#setId">setId</a></li><li><a href="global.html#setPageNumber">setPageNumber</a></li><li><a href="global.html#setPageSize">setPageSize</a></li><li><a href="global.html#setPagination">setPagination</a></li><li><a href="global.html#setSorters">setSorters</a></li><li><a href="global.html#sorters">sorters</a></li><li><a href="global.html#submitFilters">submitFilters</a></li><li><a href="global.html#sumBy">sumBy</a></li><li><a href="global.html#toArray">toArray</a></li><li><a href="global.html#toString">toString</a></li><li><a href="global.html#urls">urls</a></li><li><a href="global.html#validate">validate</a></li><li><a href="global.html#verbs">verbs</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Mon Mar 28 2022 18:48:38 GMT+0300 (GMT+03:00)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

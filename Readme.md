@@ -8,10 +8,18 @@
 
 Далее в нужном проекте устанавливаем
 
-    npm i D:/projects/sitespring/repos/datamodel/sitespring-datamodel-1.0.0.tgz -D
+    npm i D:/projects/sitespring/repos/datamodel/sitespring-datamodel-x.y.z.tgz -D
 
 ## Разработка
 
 Запуск тестов
 
     npm run test
+
+Документация
+
+    npm run docs
+
+Компиляция babel
+
+    npm run build
