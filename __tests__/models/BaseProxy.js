@@ -89,7 +89,7 @@ test('422 Ошибка запроса с вложенными данными', (
 
 
 test('Токен авторизации', (done) => {
-    BaseProxy.saveBearerToken('123');
+    BaseProxy.setBearerToken('123');
 
     $proxy = new BaseProxy();
     $proxy.on(BaseProxy.EVENT_REQUEST_START, /** @param {AxiosResponseSchema} config */(config) => {

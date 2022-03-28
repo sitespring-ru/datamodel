@@ -104,19 +104,15 @@ export default class BaseProxy extends BaseClass {
     /**
      * @private
      * */
-    static __authToken = null;
+    static __bearerToken = null;
 
 
     /**
      * Сохраняем токен авторизации глобально
      * @param {String} $token
      * */
-    static saveBearerToken($token) {
-        this.__authToken = $token;
-        if (typeof window !== 'undefined') {
-            // Используем имя конструктора в качестве ключа
-            window.localStorage.setItem(this.name, $token);
-        }
+    static setBearerToken($token) {
+        this.__bearerToken = $token;
     }
 
 
@@ -124,12 +120,16 @@ export default class BaseProxy extends BaseClass {
      * Получаем сохраненный ранее токен авторизации
      * @return {String}
      * */
-    static populateBearerToken() {
-        if (typeof window !== 'undefined') {
-            // Используем имя конструктора в качестве ключа
-            this.__authToken = window.localStorage.getItem(this.name);
-        }
-        return this.__authToken;
+    static getBearerToken() {
+        return this.__bearerToken;
+    }
+
+
+    /**
+     * @return {Boolean}
+     * */
+    static hasBearerToken() {
+        return !!this.__bearerToken;
     }
 
 
@@ -254,8 +254,8 @@ export default class BaseProxy extends BaseClass {
         let response;
 
         // Добавляем заголовок авторизации
-        const authToken = self.populateBearerToken();
-        if (authToken) {
+        if (self.hasBearerToken()) {
+            const authToken = self.getBearerToken();
             set(requestConfig, 'headers.Authorization', `Bearer ${authToken}`);
         }
 
