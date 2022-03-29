@@ -25,8 +25,10 @@ class PersonTestModel extends BaseModel {
 }
 
 class PersonsTestStore extends BaseStore {
-    model = {
-        class: PersonTestModel
+    getModelConfig() {
+        return {
+            class: PersonTestModel
+        }
     }
 }
 
@@ -48,20 +50,20 @@ describe('Работа с моделями', () => {
 
     });
 
-    test('Удаление', (done) => {
+    test('Удаление', () => {
         const $store = new PersonsTestStore();
         let $model = $store.loadModel({name: 'xoxa', age: 37});
         expect($store.getCount()).toEqual(1);
         expect($store.isEmpty()).toBeFalsy();
 
-        $store.on($store.constructor.EVENT_MODELS_REMOVED, ($modelsRemoved) => {
-            expect($modelsRemoved).toEqual([$model]);
-            done();
-        });
-
+        $store.emit = jest.fn();
         expect($store.remove($model)).toBeTruthy();
         expect($store.getCount()).toEqual(0);
         expect($store.isEmpty()).toBeTruthy();
+
+        expect($store.emit).toBeCalledTimes(2);
+        expect($store.emit).toHaveBeenNthCalledWith(1, $store.constructor.EVENT_MODELS_CHANGE, [$model]);
+        expect($store.emit).toHaveBeenNthCalledWith(2, $store.constructor.EVENT_MODELS_REMOVED, [$model]);
     });
 
 
@@ -73,10 +75,20 @@ describe('Работа с моделями', () => {
         expect($store.isEmpty()).toBeFalsy();
         expect($store.getPagination().perPage).toEqual(2);
         expect($store.getPagination().pageCount).toEqual(2);
+
+        $store.emit = jest.fn();
+        const modelsToRemove = $store.getModels();
+        const oldPagination = {...$store.getPagination()};
+
         $store.clear();
         expect($store.isEmpty()).toBeTruthy();
         expect($store.getPagination().perPage).toEqual(2);
         expect($store.getPagination().pageCount).toEqual(1);
+
+        expect($store.emit).toBeCalledTimes(3);
+        expect($store.emit).toHaveBeenNthCalledWith(1, $store.constructor.EVENT_MODELS_CHANGE, modelsToRemove);
+        expect($store.emit).toHaveBeenNthCalledWith(2, $store.constructor.EVENT_MODELS_REMOVED, modelsToRemove);
+        expect($store.emit).toHaveBeenNthCalledWith(3, $store.constructor.EVENT_PAGINATION_CHANGE, {oldPagination, newPagination: $store.getPagination()});
     });
 
 

@@ -60,6 +60,13 @@ export default class BaseModel extends BaseClass {
     static EVENT_DELETE = 'delete';
 
     /**
+     * Событие изменения данных об ошибках валидации
+     * @event BaseModel#EVENT_ERRORS_CHANGE
+     * @param {Object} $data Текущий стек ошибок
+     * */
+    static EVENT_ERRORS_CHANGE = 'errorschange';
+
+    /**
      * Алиас модели для построения rest api запросов и пр. логики
      * @type {String}
      * */
@@ -106,18 +113,23 @@ export default class BaseModel extends BaseClass {
      * */
     idProperty = 'id';
 
+
     /**
      * Конфигурация для Прокси
-     * @type {Object}
+     * @return {Object}
      * */
-    get proxyConfig() {
+    getProxyConfig() {
         return {
             class: BaseProxy
         }
     };
 
-    // Конфигурация для настройки validate.js
-    get validateConfig() {
+
+    /**
+     *  Конфигурация для настройки validate.js
+     *  @return {Object}
+     *  */
+    getValidationConfig() {
         return {
             // Since validators don't include the argument name in the error message the validate function prepends it for them.
             // This behaviour can be disabled by setting the fullMessages option to false.
@@ -431,7 +443,7 @@ export default class BaseModel extends BaseClass {
 
     /**
      * Валидация Модели
-     * Ошибки можно прочесть из реактивного свойства BaseModel.errors.value
+     * Ошибки можно прочесть из BaseModel.getErrors()
      * @param {?Array} $names Аттрибуты для валидации, или будут использованы все
      * @param {?Object} $extraConfig Дополнительная конфигурация для Валидатора
      * @return {boolean} Результат валидации
@@ -443,7 +455,7 @@ export default class BaseModel extends BaseClass {
         const $constraintsToValidate = $names ? pick($rules, $names) : $rules;
         // Поскольку validate.js не поддерживает создание экземпляра
         // Возможно передать дополнительные опции при валидации, которые мы берем из конфигурации Модели
-        const $options = {...this.validateConfig, ...$extraConfig};
+        const $options = {...this.getValidationConfig(), ...$extraConfig};
         const $attrs = this.getAttributes($names);
         const $errors = validate($attrs, $constraintsToValidate, $options);
 
@@ -460,6 +472,7 @@ export default class BaseModel extends BaseClass {
      * */
     setErrors($errors) {
         this._errors = $errors;
+        this.emit(this.constructor.EVENT_ERRORS_CHANGE, this._errors);
     }
 
 
@@ -476,11 +489,12 @@ export default class BaseModel extends BaseClass {
      * */
     dropErrors() {
         this._errors = {};
+        this.emit(this.constructor.EVENT_ERRORS_CHANGE, this._errors);
     }
 
 
     /**
-     * Сброс ошибок
+     * Текущий стек ошибок валидации
      * */
     getErrors() {
         return this._errors;
@@ -503,7 +517,7 @@ export default class BaseModel extends BaseClass {
     getProxy() {
         if (!this.__innerProxy) {
             // Берем конфигурацию Прокси переданную в конструктор
-            this.__innerProxy = BaseClass.createInstance(this.proxyConfig);
+            this.__innerProxy = BaseClass.createInstance(this.getProxyConfig());
         }
         return this.__innerProxy;
     }
@@ -603,17 +617,14 @@ export default class BaseModel extends BaseClass {
 
     /**
      * Получаем данные с сервера
-     * @param {?String|Number} [$id]
+     * @param {?Object} [$extraConfig]
      * */
-    async fetch($id) {
-        if ($id) {
-            this.setId($id);
-        }
-
+    async fetch($extraConfig = {}) {
         const url = this.urls()['fetch'];
         const method = this.verbs()['fetch'];
+        const requestConfig = {url, method, ...$extraConfig};
         this._isPhantom = true;
-        const data = await this.doRequest({url, method});
+        const data = await this.doRequest(requestConfig);
         this.setAttributes(data);
         this.commitChanges();
         this._isPhantom = false;

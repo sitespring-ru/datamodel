@@ -204,18 +204,28 @@ describe('Валидация на стороне сервера', () => {
 
 describe('CRUD rest api', () => {
     test('Fetch', (done) => {
-        const $model = new TestModel();
+        const $model = new TestModel({id: 55});
         expect($model.isPhantom()).toBeTruthy();
 
         $model.getProxy().doRequest = jest.fn().mockResolvedValue({dob: '2000-02-03', name: 'Mike'});
         $model.on(TestModel.EVENT_FETCH, ($data) => {
-            expect($model.getProxy().doRequest).toHaveBeenNthCalledWith(1, {method: 'GET', url: 'test-model/55'});
+            expect($model.getProxy().doRequest).toHaveBeenNthCalledWith(1, {
+                method: 'GET', url: 'test-model/55', params: {
+                    fields: 'id,name',
+                    expand: 'passport'
+                }
+            });
             expect($model.isPhantom()).toBeFalsy();
             expect($data).toMatchObject({dob: '2000-02-03', name: 'Mike'});
             expect($model.getAttributes()).toMatchObject({dob: new Date('2000-02-03'), name: 'Mike'});
             done();
         });
-        $model.fetch(55);
+        $model.fetch({
+            params: {
+                fields: 'id,name',
+                expand: 'passport'
+            }
+        });
     });
 
     test('Create', (done) => {

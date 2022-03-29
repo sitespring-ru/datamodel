@@ -142,17 +142,27 @@ export default class BaseStore extends BaseClass {
         this.setSorters($sorters);
     }
 
+
     /**
-     * Конфигурация Прокси для удаленных запросов
-     * @type {Object}
+     * Конфигурация для Прокси
+     * @return {Object}
      * */
-    proxy = {class: BaseProxy};
+    getProxyConfig() {
+        return {
+            class: BaseProxy
+        }
+    };
+
 
     /**
      * Конфигурация хранимой Модели
-     * @type {Object}
+     * @return {Object}
      * */
-    model = {class: BaseModel};
+    getModelConfig() {
+        return {
+            class: BaseModel
+        }
+    };
 
 
     /**
@@ -323,6 +333,8 @@ export default class BaseStore extends BaseClass {
      * Добавление (обновление) Модели в Хранилище
      * @param {BaseModel|object} modelOrAttrs Модель или аттрибуты для создания
      * @return {BaseModel} Экземпляр добавленной  модели
+     *
+     * @fires BaseStore#EVENT_MODELS_CHANGE
      * */
     loadModel(modelOrAttrs) {
         const {model} = this.__internalAdd(modelOrAttrs);
@@ -340,6 +352,8 @@ export default class BaseStore extends BaseClass {
      * Смысл в том чтобы пересчитать пагинацию и вызвать события после всех добавлений один раз
      * @param {BaseModel[]|object[]} modelsOrAttrs
      * @return {BaseModel[]} Стек добавленных и обновленных Моделей
+     *
+     * @fires BaseStore#EVENT_MODELS_CHANGE
      * */
     loadModels(modelsOrAttrs) {
         let handledModels = [];
@@ -374,7 +388,7 @@ export default class BaseStore extends BaseClass {
         let model;
         // Был передан объект аттрибутов
         if (!(modelOrAttrs instanceof BaseModel)) {
-            model = BaseModel.createInstance(this.model);
+            model = BaseModel.createInstance(this.getModelConfig());
             model.setAttributes(modelOrAttrs);
         } else {
             model = modelOrAttrs;
@@ -398,15 +412,30 @@ export default class BaseStore extends BaseClass {
      * @return {Boolean} true если модель была удалена
      * */
     remove(model) {
-        const removeModels = remove(this._innerModels, (m) => isEqual(m.getId(), model.getId()));
+        return Boolean(this.removeBy((m) => isEqual(m.getId(), model.getId())));
+    }
+
+
+    /**
+     * Удаление моделей пачкой по предикату
+     * @param {Function} predicate
+     * @return {Number} Количество удаленных моделей
+     *
+     * @fires BaseStore#EVENT_MODELS_CHANGE
+     * @fires BaseStore#EVENT_MODELS_REMOVED
+     * */
+    removeBy(predicate) {
+        const removeModels = remove(this._innerModels, predicate);
         if (removeModels.length) {
+            this.emit(this.constructor.EVENT_MODELS_CHANGE, removeModels);
             this.emit(this.constructor.EVENT_MODELS_REMOVED, removeModels);
+
             // Обновляем пагинацию только если были добавлены Модели
             if (this.isPaginated) {
                 this._refreshPagination();
             }
         }
-        return Boolean(removeModels.length);
+        return removeModels.length;
     }
 
 
@@ -438,10 +467,17 @@ export default class BaseStore extends BaseClass {
 
     /**
      * Очистить Хранилище: сбрасываются текущие состояния загруженных данных
+     * @fires BaseStore#EVENT_MODELS_CHANGE
+     * @fires BaseStore#EVENT_MODELS_REMOVED
      * */
     clear() {
         this._isFetched = false;
-        this._innerModels = [];
+        if (!this.isEmpty()) {
+            this.emit(this.constructor.EVENT_MODELS_CHANGE, this.getModels());
+            this.emit(this.constructor.EVENT_MODELS_REMOVED, this.getModels());
+            this._innerModels = [];
+        }
+
         if (this.isPaginated) {
             this._refreshPagination()
         }
@@ -462,6 +498,8 @@ export default class BaseStore extends BaseClass {
     /**
      * Задаем новое значение пагинации
      * @param {PaginationDefinition} $pagination
+     *
+     * @fires BaseStore#EVENT_PAGINATION_CHANGE
      * */
     setPagination($pagination) {
         const oldPagination = {...this.getPagination()};
@@ -476,6 +514,8 @@ export default class BaseStore extends BaseClass {
      * Получение данных с сервера через Прокси
      * @param {?object} config Дополнительный конфиг для запроса
      * @return {Promise}
+     *
+     * @fires BaseStore#EVENT_FETCH
      * */
     async fetch(config = {}) {
         const filtersParams = this._serializeFiltersToRequestParams();
@@ -549,6 +589,8 @@ export default class BaseStore extends BaseClass {
      * Добавляем фильтр
      * @param {string} $id Идентификатор фильтра
      * @param {FilterDefinition} $filter
+     *
+     * @fires BaseStore#EVENT_FILTERS_CHANGE
      * */
     addFilter($id, $filter) {
         const $oldFilters = {...this._innerFilters};
@@ -573,6 +615,8 @@ export default class BaseStore extends BaseClass {
     /**
      * Изменяем весь стек фильтров одним вызовом
      * @param {Object.<string,FilterDefinition>} $filters
+     *
+     * @fires BaseStore#EVENT_FILTERS_CHANGE
      * */
     setFilters($filters) {
         const oldFilters = {...this._innerFilters};
@@ -588,6 +632,8 @@ export default class BaseStore extends BaseClass {
     /**
      * Удаляем фильтр
      * @param {string} id Идентификатор фильтра
+     *
+     * @fires BaseStore#EVENT_FILTERS_CHANGE
      * */
     removeFilter(id) {
         const $oldFilters = {...this._innerFilters};
@@ -656,6 +702,8 @@ export default class BaseStore extends BaseClass {
     /**
      * Задаем новую карту сортировщиков
      * @param {Object.<String,SorterDefinition>} $sorters
+     *
+     * @fires BaseStore#EVENT_SORTERS_CHANGE
      * */
     setSorters($sorters) {
         const oldSorters = {...this._innerSorters};
@@ -682,6 +730,8 @@ export default class BaseStore extends BaseClass {
      * @param {String} $id
      * @param {SorterDefinition} $sorter
      * @throws Error В случае некорректно переданного объекта Сортировки
+     *
+     * @fires BaseStore#EVENT_SORTERS_CHANGE
      * */
     addSorter($id, $sorter) {
         const $oldSorters = {...this._innerSorters};
@@ -696,6 +746,8 @@ export default class BaseStore extends BaseClass {
     /**
      * Удаляем сортировку
      * @param {string} id Идентификатор сортировки
+     *
+     * @fires BaseStore#EVENT_SORTERS_CHANGE
      * */
     removeSorter(id) {
         const oldSorters = {...this._innerSorters};
@@ -833,7 +885,7 @@ export default class BaseStore extends BaseClass {
     getProxy() {
         if (!this._innerProxy) {
             // Берем конфигурацию Прокси переданную в конструктор
-            this._innerProxy = BaseClass.createInstance(this.proxy);
+            this._innerProxy = BaseClass.createInstance(this.getProxyConfig());
         }
         return this._innerProxy;
     }

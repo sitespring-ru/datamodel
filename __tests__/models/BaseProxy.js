@@ -88,7 +88,7 @@ test('422 Ошибка запроса с вложенными данными', (
 });
 
 
-test('Токен авторизации', (done) => {
+test('Токен авторизации + событие', (done) => {
     BaseProxy.setBearerToken('123');
 
     $proxy = new BaseProxy();
@@ -104,4 +104,24 @@ test('Токен авторизации', (done) => {
     // Эмулируем ответ
     axios.request.mockResolvedValue({});
     $proxy.doRequest();
+});
+
+test('Токен авторизации: изменение через метод', async () => {
+    $proxy = new BaseProxy();
+    $proxy.constructor.setBearerToken('1234');
+
+    // Создаем другой экземпляр, токен должен быть определен
+    const $proxy2 = new BaseProxy();
+    // Эмулируем ответ
+    axios.request.mockResolvedValue({});
+    await $proxy2.doRequest();
+    expect(axios.request).toBeCalledWith({
+        headers: {
+            'Authorization': 'Bearer 1234'
+        }
+    });
+
+    BaseProxy.setBearerToken(null);
+    await $proxy2.doRequest();
+    expect(axios.request).toBeCalledWith({});
 });

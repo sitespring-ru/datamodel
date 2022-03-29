@@ -1,4 +1,4 @@
-import {forEach, hasIn, isEmpty, omit, set} from "lodash";
+import {forEach, hasIn, isArray, isEmpty, omit, set} from "lodash";
 import mitt from "mitt";
 
 /**
@@ -88,19 +88,27 @@ export default class BaseClass {
 
     /**
      * Register an event handler for the given type.
+     * Добавляем возможность работать с массивом событий и одним обработчиком
+     *
      * @see https://github.com/developit/mitt
      *
-     * @param {string|symbol} $event Type of event to listen for, or '*' for all events
+     * @param {string|symbol|Array<string|symbol>} $event Type of event to listen for, or '*' for all events
      * @param {Function} $handler Function to call in response to given event
      * @return void
      * */
     on($event, $handler) {
-        this.getEmitter().on($event, $handler);
+        if (isArray($event)) {
+            forEach($event, ($eventItem) => this.getEmitter().on($eventItem, $handler));
+        } else {
+            this.getEmitter().on($event, $handler);
+        }
     }
 
 
     /**
      * Remove an event handler for the given type. If handler is omitted, all handlers of the given type are removed.
+     * Добавляем возможность работать с массивом событий и одним обработчиком
+     *
      * @see https://github.com/developit/mitt
      *
      * @param {string|symbol} $event Type of event to listen for, or '*' for all events
@@ -108,7 +116,11 @@ export default class BaseClass {
      * @return void
      * */
     off($event, $handler) {
-        this.getEmitter().off($event, $handler);
+        if (isArray($event)) {
+            forEach($event, ($eventItem) => this.getEmitter().off($eventItem, $handler));
+        } else {
+            this.getEmitter().off($event, $handler);
+        }
     }
 
 
