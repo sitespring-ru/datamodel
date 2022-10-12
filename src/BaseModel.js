@@ -1,6 +1,6 @@
 import {each, get, has, isArray, isEmpty, isEqual, isFunction, isString, keys, mapValues, pick, reduce, values} from "lodash";
-import BaseClass from "./BaseClass";
-import BaseProxy from "./BaseProxy";
+import BaseClass from "./BaseClass.js";
+import BaseProxy from "./BaseProxy.js";
 import validate from "validate.js";
 import dayjs from "dayjs";
 

@@ -1,7 +1,7 @@
 import {isEmpty, find, isEqual, size, values, each, remove, map, get, isFunction, isMatch, sumBy} from "lodash";
-import BaseProxy from "./BaseProxy";
-import BaseClass from "./BaseClass";
-import BaseModel from "./BaseModel";
+import BaseProxy from "./BaseProxy.js";
+import BaseClass from "./BaseClass.js";
+import BaseModel from "./BaseModel.js";
 
 /**
  * Базовый функционал хранилища

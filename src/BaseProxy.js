@@ -141,8 +141,6 @@ export default class BaseProxy extends BaseClass {
     axiosDefaults() {
         return {
             baseURL: '/',
-            timeout: 0,
-            headers: [],
             // `withCredentials` indicates whether or not cross-site Access-Control requests
             // should be made using credentials
             withCredentials: false, // default

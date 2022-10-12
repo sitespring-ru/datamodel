@@ -1,6 +1,6 @@
 {
     "name": "@sitespring/datamodel",
-    "version": "2.0.1",
+    "version": "2.1.0",
     "description": "Базовые классы для работы с данными: Model, Store, Proxy",
     "main": "index.js",
     "scripts": {
@@ -14,7 +14,8 @@
     "files": [
         "src",
         "lib",
-        "docs"
+        "docs",
+        "index.lib.js"
     ],
     "dependencies": {
         "@babel/preset-env": "^7.15.8",

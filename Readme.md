@@ -8,7 +8,8 @@
 
 Далее в нужном проекте устанавливаем
 
-    npm i D:/projects/sitespring/repos/datamodel/sitespring-datamodel-x.y.z.tgz -D
+    win>> npm i D:/projects/sitespring/repos/datamodel/sitespring-datamodel-x.y.z.tgz -D
+    unix>> npm i /projects/sitespring/repos/datamodel/sitespring-datamodel-x.y.z.tgz -D
 
 ## Разработка
 
