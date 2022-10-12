@@ -1,5 +1,4 @@
-import {isEmpty, find, isEqual, size, values, each, remove, map, get, isFunction, isMatch, sumBy} from "lodash";
-import BaseProxy from "./BaseProxy.js";
+import {each, find, get, isEmpty, isEqual, isFunction, isMatch, map, remove, size, sumBy, values} from "lodash";
 import BaseClass from "./BaseClass.js";
 import BaseModel from "./BaseModel.js";
 
@@ -86,37 +85,21 @@ export default class BaseStore extends BaseClass {
      * */
     static EVENT_FETCH = 'fetch';
 
+    /**
+     * Конструктор модели
+     * @type {typeof BaseModel}
+     * */
+    model = BaseModel;
+
 
     /**
-     * Стоит ли обрабатывать хранилище по странично
      * @type {Boolean}
+     * @readonly
      * */
-    isPaginated = false;
+    get isStore() {
+        return true;
+    }
 
-    /**
-     * Url для получения данных с удаленного сервера
-     * @type {String}
-     *  */
-    fetchUrl = null;
-
-    /**
-     * Обычно 20 моделей стандартный лимит, чтобы запросить все модели можно установить в 0
-     * @type {Number}
-     * */
-    pageSize = 20;
-
-
-    /**
-     *  Автоматически сортировать модели при изменении стека сортировок
-     *  @type {Boolean}
-     *  */
-    autoSort = false;
-
-    /**
-     *  Автоматически фильтровать модели при изменении стека фильтров
-     *  @type {Boolean}
-     *  */
-    autoFilter = false;
 
     /**
      * Setter для свойства filters для определения через конструктор, например
@@ -128,6 +111,10 @@ export default class BaseStore extends BaseClass {
      * */
     set filters($filters) {
         this.setFilters($filters);
+    }
+
+    get filters() {
+        return this.getFilters();
     }
 
     /**
@@ -142,97 +129,53 @@ export default class BaseStore extends BaseClass {
         this.setSorters($sorters);
     }
 
+    get sorters() {
+        return this.getSorters();
+    }
 
     /**
      * Конфигурация для Прокси
      * @return {Object}
      * */
     getProxyConfig() {
-        return {
-            class: BaseProxy
+        if (!this.__proxyConfig) {
+            this.__proxyConfig = (new this.model()).getProxyConfig();
         }
+        return this.__proxyConfig;
     };
 
-
     /**
-     * Конфигурация хранимой Модели
+     * Конфигурация создаваемой Модели
      * @return {Object}
      * */
     getModelConfig() {
         return {
-            class: BaseModel
+            class: this.model
         }
     };
 
-
-    /**
-     * @type {?BaseProxy}
-     * @private
-     * */
-    _innerProxy;
-
-    /**
-     * Стек хранимый моделей
-     * @type {BaseModel[]}
-     * @private
-     * */
-    _innerModels;
-
-    /**
-     * Внутренняя карта сортировок по id
-     * @type {Object.<String,SorterDefinition>}
-     * @private
-     * */
-    _innerSorters;
-
-    /**
-     * Внутренняя карта фильтров по id
-     * @type {Object.<String,FilterDefinition>}
-     * @private
-     * */
-    _innerFilters;
-
-
-    /**
-     * Были ли получены данные с сервера
-     * @type {Boolean}
-     * */
-    _isFetched = false;
-
-    /**
-     * Состояние ожидания Прокси
-     * @type {Boolean}
-     */
-    _isRequesting = false;
-
-    /**
-     * @type {?PaginationDefinition}
-     * @private
-     * */
-    _pagination;
-
-
     /**
      * @return {int} Количество моделей
-     * */
-    getCount() {
+     * @readonly
+     *  */
+    get count() {
         return size(this._innerModels);
     }
 
-
     /**
      * @return {Boolean}
+     * @readonly
      * */
-    isEmpty() {
-        return this.getCount() === 0;
+    get isEmpty() {
+        return this.count === 0;
     }
-
 
     /**
      * Состояние о том был ли сделан первый запрос к серверу
      * @return {Boolean}
+     * @readonly
      * */
-    isFetched() {
+    get isFetched() {
         return this._isFetched;
     }
 
@@ -241,7 +184,7 @@ export default class BaseStore extends BaseClass {
      * Количество Фильтров Хранилища
      * @return {Number}
      * */
-    getFiltersCount() {
+    get filtersCount() {
         return size(this._innerFilters);
     }
 
@@ -250,7 +193,7 @@ export default class BaseStore extends BaseClass {
      * Количество Сортировщиков Хранилища
      * @return {Number}
      * */
-    getSortersCount() {
+    get sortersCount() {
         return size(this._innerSorters);
     }
 
@@ -258,8 +201,8 @@ export default class BaseStore extends BaseClass {
     /**
      * @return {Boolean}
      * */
-    hasSorters() {
-        return this.getSortersCount() > 0;
+    get hasSorters() {
+        return this.sortersCount > 0;
     }
 
 
@@ -267,7 +210,7 @@ export default class BaseStore extends BaseClass {
      * Возможно ли получить след страницу данных
      * @type {Boolean}
      * */
-    hasNextPage() {
+    get hasNextPage() {
         if (!this.isPaginated) {
             return false;
         }
@@ -276,22 +219,10 @@ export default class BaseStore extends BaseClass {
 
 
     /**
-     * @param {Object} config Дополнительная конфигурация
-     * */
-    constructor(config = {}) {
-        super(config);
-
-        this._innerModels = [];
-        this._innerFilters = {};
-        this._innerSorters = {};
-    }
-
-
-    /**
      * Текущий стек моделей
      * @return {BaseModel[]}
      * */
-    getModels() {
+    get models() {
         if (!this.isPaginated) {
             return this._innerModels;
         }
@@ -305,17 +236,155 @@ export default class BaseStore extends BaseClass {
      * Номер текущей страницы
      * @return {Integer}
      * */
-    getPageNumber() {
-        return this.getPagination().currentPage;
+    get pageNumber() {
+        return this.pagination.currentPage;
     }
-
 
     /**
      * Задаем номер страницы
      * @param {Integer} $number
      * */
-    setPageNumber($number) {
-        this.getPagination().currentPage = $number;
+    set pageNumber($number) {
+        this.pagination.currentPage = $number;
+    }
+
+
+    /**
+     * @return {PaginationDefinition}
+     * */
+    get pagination() {
+        if (!this._pagination) {
+            this._pagination = this._calculatePagination();
+        }
+        return this._pagination;
+    }
+
+
+    /**
+     * Задаем новое значение пагинации
+     * @param {PaginationDefinition} $pagination
+     *
+     * @fires BaseStore#EVENT_PAGINATION_CHANGE
+     * */
+    set pagination($pagination) {
+        const oldPagination = {...this.pagination};
+        Object.assign(this._pagination, $pagination);
+        if (!isEqual(oldPagination, this._pagination)) {
+            this.emit(this.constructor.EVENT_PAGINATION_CHANGE, {oldPagination, newPagination: this._pagination});
+        }
+    }
+
+
+    /**
+     * @return {boolean} Поддерживает ли Хранилище пагинацию
+     * @readonly
+     * */
+    get hasPagination() {
+        return !!this.isPaginated;
+    }
+
+
+    /**
+     * Создание прокси для запросов в контексте Модели
+     * @return {BaseProxy} Созданный экземпляр Прокси
+     * */
+    get proxy() {
+        if (!this._innerProxy) {
+            // Берем конфигурацию Прокси переданную в конструктор
+            this._innerProxy = this.constructor.createInstance(this.getProxyConfig());
+        }
+        return this._innerProxy;
+    }
+
+
+    /**
+     * @return {Boolean}
+     * */
+    get isRequesting() {
+        return this.proxy.isRequesting();
+    }
+
+
+    /**
+     * @param {Object} config Дополнительная конфигурация
+     * */
+    constructor(config = {}) {
+        super(config);
+
+        /**
+         * Стоит ли обрабатывать хранилище по странично
+         * @type {Boolean}
+         * */
+        this.isPaginated = false;
+
+        /**
+         * Url для получения данных с удаленного сервера
+         * @type {String}
+         *  */
+        this.fetchUrl = null;
+
+        /**
+         * Обычно 20 моделей стандартный лимит, чтобы запросить все модели можно установить в 0
+         * @type {Number}
+         * */
+        this.pageSize = 20;
+
+        /**
+         *  Автоматически сортировать модели при изменении стека сортировок
+         *  @type {Boolean}
+         *  */
+        this.autoSort = false;
+
+        /**
+         *  Автоматически фильтровать модели при изменении стека фильтров
+         *  @type {Boolean}
+         *  */
+        this.autoFilter = false;
+
+        /**
+         * @type {?BaseProxy}
+         * @private
+         * */
+        this._innerProxy = null;
+
+        /**
+         * Стек хранимый моделей
+         * @type {BaseModel[]}
+         * @private
+         * */
+        this._innerModels = [];
+
+        /**
+         * Внутренняя карта сортировок по id
+         * @type {Object.<String,SorterDefinition>}
+         * @private
+         * */
+        this._innerSorters = {};
+
+        /**
+         * Внутренняя карта фильтров по id
+         * @type {Object.<String,FilterDefinition>}
+         * @private
+         * */
+        this._innerFilters = {};
+
+        /**
+         * Были ли получены данные с сервера
+         * @type {Boolean}
+         * */
+        this._isFetched = false;
+
+        /**
+         * Состояние ожидания Прокси
+         * @type {Boolean}
+         */
+        this._isRequesting = false;
+
+        /**
+         * @type {?PaginationDefinition}
+         * @private
+         * */
+        this._pagination = null;
     }
 
 
@@ -387,8 +456,8 @@ export default class BaseStore extends BaseClass {
         /** @type {BaseModel} */
         let model;
         // Был передан объект аттрибутов
-        if (!(modelOrAttrs instanceof BaseModel)) {
-            model = BaseModel.createInstance(this.getModelConfig());
+        if (!(modelOrAttrs instanceof this.model)) {
+            model = BaseClass.createInstance(this.getModelConfig());
             model.setAttributes(modelOrAttrs);
         } else {
             model = modelOrAttrs;
@@ -402,7 +471,7 @@ export default class BaseStore extends BaseClass {
         }
 
         this._innerModels.push(model);
-        return {model: model, isCreated: true};
+        return {model, isCreated: true};
     }
 
 
@@ -472,9 +541,9 @@ export default class BaseStore extends BaseClass {
      * */
     clear() {
         this._isFetched = false;
-        if (!this.isEmpty()) {
-            this.emit(this.constructor.EVENT_MODELS_CHANGE, this.getModels());
-            this.emit(this.constructor.EVENT_MODELS_REMOVED, this.getModels());
+        if (!this.isEmpty) {
+            this.emit(this.constructor.EVENT_MODELS_CHANGE, this.models);
+            this.emit(this.constructor.EVENT_MODELS_REMOVED, this.models);
             this._innerModels = [];
         }
 
@@ -484,29 +553,11 @@ export default class BaseStore extends BaseClass {
     }
 
 
-    /**
-     * @return {PaginationDefinition}
-     * */
-    getPagination() {
-        if (!this._pagination) {
-            this._pagination = this._calculatePagination();
+    buildFetchUrl() {
+        if (this.fetchUrl) {
+            return this.fetchUrl;
         }
-        return this._pagination;
-    }
-
-
-    /**
-     * Задаем новое значение пагинации
-     * @param {PaginationDefinition} $pagination
-     *
-     * @fires BaseStore#EVENT_PAGINATION_CHANGE
-     * */
-    setPagination($pagination) {
-        const oldPagination = {...this.getPagination()};
-        Object.assign(this._pagination, $pagination);
-        if (!isEqual(oldPagination, this._pagination)) {
-            this.emit(this.constructor.EVENT_PAGINATION_CHANGE, {oldPagination, newPagination: this._pagination});
-        }
+        return '/' + (new this.model()).entityName;
     }
 
 
@@ -522,7 +573,7 @@ export default class BaseStore extends BaseClass {
         const sortersParams = this._serializeSortersToRequestParams();
         const pageParams = this.isPaginated ? this._serializePaginationToRequestParams() : {};
         const params = {...filtersParams, ...sortersParams, ...pageParams};
-        const url = this.fetchUrl;
+        const url = this.buildFetchUrl();
         const requestConfig = {url, params, ...config};
         try {
             const responseData = await this.doRequest(requestConfig);
@@ -530,8 +581,7 @@ export default class BaseStore extends BaseClass {
             this.loadModels(models);
 
             if (this.isPaginated) {
-                const pagination = this._parsePaginationFromResponse(responseData);
-                this.setPagination(pagination);
+                this.pagination = this._parsePaginationFromResponse(responseData);
             }
 
             // сохраняем флаг о том что запрос был успешно сделан
@@ -659,7 +709,7 @@ export default class BaseStore extends BaseClass {
      * @return {boolean}
      * */
     hasFilters() {
-        return this.getFiltersCount() > 0;
+        return this.filtersCount > 0;
     }
 
 
@@ -773,15 +823,7 @@ export default class BaseStore extends BaseClass {
      * Обновляем данные о пагинации
      * */
     _refreshPagination() {
-        this.setPagination(this._calculatePagination());
-    }
-
-
-    /**
-     * @return {boolean} Поддерживает ли Хранилище пагинацию
-     * */
-    hasPagination() {
-        return !!this.isPaginated;
+        this.pagination = this._calculatePagination();
     }
 
 
@@ -827,13 +869,13 @@ export default class BaseStore extends BaseClass {
      * */
     _serializePaginationToRequestParams() {
         let params = {};
-        if (this.hasNextPage()) {
+        if (this.hasNextPage) {
             Object.assign(params, {
                 limit: this.pageSize,
-                page: this.getPageNumber()
+                page: this.pageNumber
             });
             // Если мы уже получили первую порцию данных, то хотим след страницу
-            if (this.isFetched()) {
+            if (this.isFetched) {
                 params.page++;
             }
         }
@@ -866,7 +908,7 @@ export default class BaseStore extends BaseClass {
      * @private
      * */
     _calculatePagination() {
-        const totalCount = this.getCount();
+        const totalCount = this.count;
         const perPage = this.pageSize;
         // Если Хранилище пустое, страница будет 1
         const pageCount = totalCount && Math.ceil(totalCount / perPage) || 1;
@@ -879,19 +921,6 @@ export default class BaseStore extends BaseClass {
 
 
     /**
-     * Создание прокси для запросов в контексте Модели
-     * @return {BaseProxy} Созданный экземпляр Прокси
-     * */
-    getProxy() {
-        if (!this._innerProxy) {
-            // Берем конфигурацию Прокси переданную в конструктор
-            this._innerProxy = BaseClass.createInstance(this.getProxyConfig());
-        }
-        return this._innerProxy;
-    }
-
-
-    /**
      * Выполнение запроса через прокси
      * Подразумевается что валидация перед запросом отдается на откуп логике приложения
      * @param {Object} config - Конфигурация для запроса axios
@@ -899,7 +928,7 @@ export default class BaseStore extends BaseClass {
      * @return {Promise}
      * */
     async doRequest(config) {
-        const proxy = this.getProxy();
+        const proxy = this.proxy;
         try {
             this._isRequesting = true;
             const responseData = (await proxy.doRequest(config));
@@ -936,9 +965,33 @@ export default class BaseStore extends BaseClass {
      * @return {Promise<BaseStore>} Экземпляр Хранилища после загрузки
      * */
     async ensureFetched() {
-        if (!this.isFetched()) {
+        if (!this.isFetched) {
             await this.fetch();
         }
         return Promise.resolve(this);
+    }
+
+
+    /**
+     * Iterable protocol
+     * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols
+     * */
+    [Symbol.iterator]() {
+        // Use a new index for each iterator. This makes multiple
+        // iterations over the iterable safe for non-trivial cases,
+        // such as use of break or nested looping over the same iterable.
+        let index = 0;
+
+        return {
+            // Note: using an arrow function allows `this` to point to the
+            // one of `[@@iterator]()` instead of `next()`
+            next: () => {
+                if (index < this.count) {
+                    return {value: this.models[index++], done: false};
+                } else {
+                    return {done: true};
+                }
+            },
+        };
     }
 }

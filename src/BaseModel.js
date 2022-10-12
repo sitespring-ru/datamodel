@@ -1,8 +1,9 @@
-import {each, get, has, isArray, isEmpty, isEqual, isFunction, isString, keys, mapValues, pick, reduce, values} from "lodash";
+import {each, forEach, get, has, isArray, isEmpty, isEqual, isFunction, isString, keys, mapValues, pick, reduce, values} from "lodash";
 import BaseClass from "./BaseClass.js";
 import BaseProxy from "./BaseProxy.js";
 import validate from "validate.js";
 import dayjs from "dayjs";
+import BaseStore from "./BaseStore";
 
 
 /**
@@ -23,6 +24,14 @@ export default class BaseModel extends BaseClass {
     /**
      * Карта аттрибутов где ключи названия полей
      * @typedef {Object.<String,*>} AttributesMap
+     * */
+
+    /**
+     * Обьект описания связей
+     * @typedef {Object} RelationDefinition
+     * @property {typeof BaseModel} model Конструктор Модели в случае связи hasOne
+     * @property {?String} foreignKey Внешний ключ для сортировки Хранилища
+     * @property {("hasOne"|"hasMany")} type Тип связи
      * */
 
     /**
@@ -66,52 +75,28 @@ export default class BaseModel extends BaseClass {
      * */
     static EVENT_ERRORS_CHANGE = 'errorschange';
 
+
     /**
-     * Алиас модели для построения rest api запросов и пр. логики
+     * Алиас модели для построения rest api запросов, генерации id и т.п.
      * @type {String}
      * */
     entityName = 'base-model';
 
-    /**
-     * Сохраненные данные
-     * @type {AttributesMap}
-     * @protected
-     * */
-    _savedAttributes = {};
-
-    /**
-     * Измененные данные
-     * @type {AttributesMap}
-     * @protected
-     * */
-    _dirtyAttributes = {};
-
-    /**
-     * Имеет ли модель id в базе данных на стороне сервера
-     * @type {Boolean}
-     * @protected
-     * */
-    _isPhantom = true;
-
-    /**
-     * Модель была удалена на стороне сервера
-     * @type {Boolean}
-     * @protected
-     * */
-    _isDeleted = false;
-
-    /**
-     * Индексированный объект ошибок
-     * @type {AttributesMap}
-     * @protected
-     * */
-    _errors = {};
 
     /**
      * Название аттрибута сод. primary key
      * @type {String}
      * */
     idProperty = 'id';
+
+
+    /**
+     * @type {Boolean}
+     * @readonly
+     * */
+    get isModel() {
+        return true;
+    }
 
 
     /**
@@ -123,7 +108,6 @@ export default class BaseModel extends BaseClass {
             class: BaseProxy
         }
     };
-
 
     /**
      *  Конфигурация для настройки validate.js
@@ -228,6 +212,23 @@ export default class BaseModel extends BaseClass {
 
 
     /**
+     * Карта связей для автоматической обработки данных
+     * @return {Object<String,RelationDefinition>}
+     * */
+    relations() {
+        return {}
+    }
+
+
+    /**
+     * Если связь
+     * */
+    getHasRelation(name) {
+        return !!this.relations()[name];
+    }
+
+
+    /**
      * Применяем фильтр для аттрибута
      * @param {AttributeFilter|null} $filterDef
      * @param {*} $rawValue
@@ -261,12 +262,145 @@ export default class BaseModel extends BaseClass {
      * */
     constructor($attributes = {}, $config = {}) {
         super($config);
+
+        /**
+         * Сохраненные данные
+         * @type {AttributesMap}
+         * @protected
+         * */
+        this._savedAttributes = {};
+
+        /**
+         * Измененные данные
+         * @type {AttributesMap}
+         * @protected
+         * */
+        this._dirtyAttributes = {};
+
+        /**
+         * Имеет ли модель id в базе данных на стороне сервера
+         * @type {Boolean}
+         * @protected
+         * */
+        this._isPhantom = true;
+
+        /**
+         * Модель была удалена на стороне сервера
+         * @type {Boolean}
+         * @protected
+         * */
+        this._isDeleted = false;
+
+        /**
+         * Индексированный объект ошибок
+         * @type {AttributesMap}
+         * @protected
+         * */
+        this._errors = {};
+
+        /**
+         * Стек кешированных связанных Моделей/Хранилищ
+         * @type {Object<String,(BaseModel|BaseStore)>}
+         * @protected
+         * */
+        this._relations = {};
+
         // Задаем начальные данные
         Object.assign(this._savedAttributes, this.fields());
         if (!isEmpty($attributes)) {
             this._innerSetAttributes($attributes);
             this.commitChanges();
         }
+
+        this.__createMagicProps();
+    }
+
+
+    /**
+     * Создаем геттеры и сеттеры для аттрибутов
+     * @protected
+     * */
+    __createMagicProps() {
+        forEach(this.fields(), (value, attrName) => {
+            // Уже есть пропс с именем аттрибута
+            if (typeof this[attrName] !== "undefined") {
+                return;
+            }
+
+            // Создаем связь
+            if (this.getHasRelation(attrName)) {
+                this.__createRelation(attrName);
+                return;
+            }
+
+            // Обычный геттер/сеттер для аттрибута
+            Object.defineProperty(this, attrName, {
+                get() {
+                    return this.getAttribute(attrName);
+                },
+                set(v) {
+                    this.setAttribute(attrName, v);
+                }
+            })
+        });
+    }
+
+
+    /**
+     * @protected
+     * */
+    __createRelation(name) {
+        const {type, model: modelConstructor, foreignKey} = this.relations()[name];
+
+        if (type === 'hasOne') {
+            Object.defineProperty(this, name, {
+                get() {
+                    if (!this._relations[name]) {
+                        const model = modelConstructor.createInstance();
+                        model.setAttributes(this.getAttribute(name));
+                        this._relations[name] = model;
+                    }
+                    return this._relations[name];
+                },
+                set(model) {
+                    if (!(model instanceof modelConstructor)) {
+                        throw new Error(`${name} relation expect ${modelConstructor.name} instance, ${model.constructor.name} given`);
+                    }
+                    this._relations[name] = model;
+                }
+            });
+            return;
+        }
+
+        if (type === 'hasMany') {
+            Object.defineProperty(this, name, {
+                get() {
+                    if (!this._relations[name]) {
+                        const store = BaseStore.createInstance({
+                            model: modelConstructor,
+                            filters: {
+                                id: {
+                                    property: foreignKey,
+                                    value: this.getId()
+                                }
+                            }
+                        });
+                        store.loadModels(this.getAttribute(name));
+                        this._relations[name] = store;
+                    }
+                    return this._relations[name];
+                },
+                set(store) {
+                    if (!(store instanceof BaseStore)) {
+                        throw new Error(`${name} relation expect BaseStore instance, ${store.constructor.name} given`);
+                    }
+                    this._relations[name] = store;
+                }
+            });
+            return;
+        }
+
+        throw new Error(`Invalid type ${type}`);
     }
 
 
@@ -283,24 +417,16 @@ export default class BaseModel extends BaseClass {
      * Является ли модель измененной (требует сохранения)
      * @return {Boolean}
      * */
-    isDirty() {
+    get isDirty() {
         return !isEmpty(this._dirtyAttributes);
     }
 
 
     /**
-     * @return {string|number}
+     * @return {Any}
      * */
     getId() {
         return this.getAttribute(this.idProperty);
-    }
-
-
-    /**
-     * @param {string|number} value
-     * */
-    setId(value) {
-        return this.setAttribute(this.idProperty, value);
     }
 
 
@@ -319,7 +445,7 @@ export default class BaseModel extends BaseClass {
      * Имеет ли модель id в базе данных на стороне сервера
      * @return {boolean}
      * */
-    isPhantom() {
+    get isPhantom() {
         return this._isPhantom;
     }
 
@@ -327,7 +453,7 @@ export default class BaseModel extends BaseClass {
     /**
      *  @return {boolean}
      * */
-    isDeleted() {
+    get isDeleted() {
         return this._isDeleted;
     }
 
@@ -462,7 +588,7 @@ export default class BaseModel extends BaseClass {
         if (!isEmpty($errors)) {
             this.setErrors($errors);
         }
-        return !this.hasErrors();
+        return !this.hasErrors;
     }
 
 
@@ -479,7 +605,7 @@ export default class BaseModel extends BaseClass {
     /**
      * @return {Boolean}
      * */
-    hasErrors() {
+    get hasErrors() {
         return !isEmpty(this._errors);
     }
 
@@ -496,7 +622,7 @@ export default class BaseModel extends BaseClass {
     /**
      * Текущий стек ошибок валидации
      * */
-    getErrors() {
+    get errors() {
         return this._errors;
     }
 
@@ -505,7 +631,7 @@ export default class BaseModel extends BaseClass {
      * Кейс когда нам нужно узнать текст первой ошибки без привязки к аттрибуту
      * @return {?String}
      * */
-    getFirstErrorMessage() {
+    get firstErrorMessage() {
         return get(values(this._errors), '[0][0]', null);
     }
 
@@ -514,12 +640,20 @@ export default class BaseModel extends BaseClass {
      * Создание прокси для запросов в контексте Модели
      * @return {BaseProxy} Созданный экземпляр Прокси
      * */
-    getProxy() {
+    get proxy() {
         if (!this.__innerProxy) {
             // Берем конфигурацию Прокси переданную в конструктор
             this.__innerProxy = BaseClass.createInstance(this.getProxyConfig());
         }
         return this.__innerProxy;
+    }
+
+
+    /**
+     * @return {Boolean}
+     * */
+    get isRequesting() {
+        return this.proxy.isRequesting();
     }
 
 
@@ -539,7 +673,7 @@ export default class BaseModel extends BaseClass {
             }
         }
 
-        const proxy = this.getProxy();
+        const proxy = this.proxy;
         try {
             this.dropErrors();
             const responseData = (await proxy.doRequest(config));
@@ -627,6 +761,7 @@ export default class BaseModel extends BaseClass {
         const data = await this.doRequest(requestConfig);
         this.setAttributes(data);
         this.commitChanges();
+        this.__fetchRelationsData(data);
         this._isPhantom = false;
         this.emit(this.constructor.EVENT_FETCH, data);
         return Promise.resolve(data);
@@ -634,10 +769,28 @@ export default class BaseModel extends BaseClass {
 
 
     /**
+     * @protected
+     * */
+    __fetchRelationsData(data) {
+        forEach(data, (value, attr) => {
+            if (this.getHasRelation(attr)) {
+                const relation = this[attr];
+                if (relation.isModel) {
+                    relation.setAttributes(value);
+                }
+                if (relation.isStore) {
+                    relation.loadModels(value);
+                }
+            }
+        });
+    }
+
+
+    /**
      * Сохраняем данные на сервер
      * */
     async save() {
-        if (!this.isDirty()) {
+        if (!this.isDirty) {
             return Promise.resolve({});
         }
 
