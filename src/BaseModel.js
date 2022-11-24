@@ -30,6 +30,7 @@ export default class BaseModel extends BaseClass {
      * Обьект описания связей
      * @typedef {Object} RelationDefinition
      * @property {typeof BaseModel} model Конструктор Модели в случае связи hasOne
+     * @property {?typeof BaseStore} store Конструктор Хранилища в случае связи hasMany или по умолчанию будет использовано BaseStore
      * @property {?String} foreignKey Внешний ключ для сортировки Хранилища
      * @property {("hasOne"|"hasMany")} type Тип связи
      * */
@@ -350,7 +351,7 @@ export default class BaseModel extends BaseClass {
      * @protected
      * */
     __createRelation(name) {
-        const {type, model: modelConstructor, foreignKey} = this.relations()[name];
+        const {type, model: modelConstructor, foreignKey, store: storeConstructor} = this.relations()[name];
 
         if (type === 'hasOne') {
             Object.defineProperty(this, name, {
@@ -373,10 +374,11 @@ export default class BaseModel extends BaseClass {
         }
 
         if (type === 'hasMany') {
+            const storeConstructorReal = storeConstructor || BaseStore;
             Object.defineProperty(this, name, {
                 get() {
                     if (!this._relations[name]) {
-                        const store = BaseStore.createInstance({
+                        const store = storeConstructorReal.createInstance({
                             model: modelConstructor,
                             filters: {
                                 id: {
@@ -391,8 +393,8 @@ export default class BaseModel extends BaseClass {
                     return this._relations[name];
                 },
                 set(store) {
-                    if (!(store instanceof BaseStore)) {
-                        throw new Error(`${name} relation expect BaseStore instance, ${store.constructor.name} given`);
+                    if (!(store instanceof storeConstructorReal)) {
+                        throw new Error(`${name} relation expect ${storeConstructorReal.name} instance, ${store.constructor.name} given`);
                     }
                     this._relations[name] = store;
                 }
