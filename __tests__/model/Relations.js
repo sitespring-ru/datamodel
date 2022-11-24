@@ -15,16 +15,29 @@ axios.create.mockReturnThis();
 
 class Author extends BaseModel {
     entityName = 'author';
+
     fields() {
         return {
             ...super.fields(),
-            name: null
+            name: null,
+            contributors: []
         };
+    }
+
+    relations() {
+        return {
+            contributors: {
+                type: 'hasMany',
+                model: Author,
+                foreignKey: 'author_id'
+            }
+        }
     }
 }
 
 class Article extends BaseModel {
     entityName = 'article';
+
     fields() {
         return {
             ...super.fields(),
@@ -40,6 +53,7 @@ class Article extends BaseModel {
  * */
 class Book extends BaseModel {
     entityName = 'book';
+
     fields() {
         return {
             ...super.fields(),
@@ -149,6 +163,33 @@ describe('Автоматически заполняем связанные да�
         expect(theBook.articles.count).toBe(0);
         await theBook.fetch();
         expect(theBook.articles.count).toBe(2);
+    });
+
+    test('Вложенные связанные данные', async () => {
+        const theBook = new Book();
+        theBook.proxy.doRequest = jest.fn().mockResolvedValue({
+            title: 'Книга 1',
+            author: {
+                id: 1,
+                name: 'Иванов',
+                contributors: [
+                    {
+                        id: 3,
+                        name: 'Иванова Р.'
+                    }, {
+                        id: 2,
+                        name: 'Соколов Ю.Н.'
+                    },
+                ]
+            }
+        });
+
+
+        await theBook.fetch();
+        expect(theBook.author.name).toEqual('Иванов');
+        expect(theBook.author.contributors.count).toBe(2);
+        expect(theBook.author.contributors.isStore).toBeTruthy();
+        expect(theBook.author.contributors.findById(2).name).toEqual('Соколов Ю.Н.');
     });
 });
 
