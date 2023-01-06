@@ -134,6 +134,16 @@ export default class BaseProxy extends BaseClass {
 
 
     /**
+    * Общий конфиг прокси для BaseModel и BaseStore
+    * */
+    static globalDefaultProxyConfig() {
+        return {
+            class: BaseProxy
+        }
+    }
+
+
+    /**
      * @inheritDoc
      * @return {AxiosRequestConfig}
      *

@@ -1,6 +1,7 @@
 import {each, find, get, isEmpty, isEqual, isFunction, isMatch, map, remove, size, sumBy, values} from "lodash";
 import BaseClass from "./BaseClass.js";
 import BaseModel from "./BaseModel.js";
+import BaseProxy from "./BaseProxy.js";
 
 /**
  * Базовый функционал хранилища
@@ -138,10 +139,7 @@ export default class BaseStore extends BaseClass {
      * @return {Object}
      * */
     getProxyConfig() {
-        if (!this.__proxyConfig) {
-            this.__proxyConfig = (new this.model()).getProxyConfig();
-        }
-        return this.__proxyConfig;
+        return BaseProxy.globalDefaultProxyConfig();
     };
 
     /**

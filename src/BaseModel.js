@@ -125,9 +125,7 @@ export default class BaseModel extends BaseClass {
      * @return {Object}
      * */
     getProxyConfig() {
-        return {
-            class: BaseProxy
-        }
+        return BaseProxy.globalDefaultProxyConfig();
     };
 
     /**
