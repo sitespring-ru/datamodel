@@ -59,7 +59,8 @@ class Book extends BaseModel {
             ...super.fields(),
             title: 'bar',
             articles: [],
-            author: null
+            author: null,
+            author_id: null
         };
     }
 
@@ -72,7 +73,8 @@ class Book extends BaseModel {
             },
             author: {
                 type: 'hasOne',
-                model: Author
+                model: Author,
+                foreignKey: 'author_id'
             }
         }
     }
@@ -130,6 +132,13 @@ describe('Магические сеттеры связей', () => {
             theBook.articles = new Object({foo: 'bar'});
         }).toThrow('articles relation expect BaseStore instance, Object given');
     });
+    test('Foreign key', () => {
+        const theBook = new Book();
+        const theAuthor = new Author({name: 'Иванова С.'});
+        theBook.author = theAuthor;
+        expect(theBook.author_id).toEqual(theAuthor.id);
+    });
+
 });
 
 describe('Автоматически заполняем связанные данные из ответа', () => {

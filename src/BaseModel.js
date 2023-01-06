@@ -394,6 +394,9 @@ export default class BaseModel extends BaseClass {
                         throw new Error(`${name} relation expect ${modelConstructor.name} instance, ${model.constructor.name} given`);
                     }
                     this._relations[name] = model;
+                    if (foreignKey) {
+                        this.setAttribute(foreignKey, model.getId());
+                    }
                 }
             });
             return;
