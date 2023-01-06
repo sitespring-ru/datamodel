@@ -121,6 +121,15 @@ describe('Работа с аттрибутами', () => {
             created_at: new Date('2022-10-03 22:13:57')
         });
     });
+
+    test('Dirty changes', () => {
+        const model = new TestModel({age: 16});
+        model.age = 17;
+        expect(model.isDirty).toBeTruthy();
+        model.age = 16;
+        expect(model.age).toBe(16);
+        expect(model.isDirty).toBeFalsy();
+    });
 });
 
 

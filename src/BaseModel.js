@@ -1,4 +1,24 @@
-import {each, forEach, get, has, isArray, isEmpty, isEqual, isFunction, isString, keys, mapValues, pick, reduce, values} from "lodash";
+import {
+    difference,
+    differenceBy,
+    each,
+    forEach,
+    get,
+    has,
+    intersection,
+    intersectionWith,
+    isArray,
+    isEmpty,
+    isEqual,
+    isFunction,
+    isString,
+    keys,
+    map,
+    mapValues,
+    pick,
+    reduce,
+    values
+} from "lodash";
 import BaseClass from "./BaseClass.js";
 import BaseProxy from "./BaseProxy.js";
 import validate from "validate.js";
@@ -183,6 +203,14 @@ export default class BaseModel extends BaseClass {
 
 
     /**
+     * Массив полей, которые могут быть изменены с помощью метода setAttributes
+     * */
+    safeAttributes() {
+        return keys(this.fields());
+    }
+
+
+    /**
      * Правила валидации
      * По умолчанию используется библиотека https://validatejs.org/
      * @see https://validatejs.org/
@@ -270,9 +298,11 @@ export default class BaseModel extends BaseClass {
          * @protected
          * */
         this._savedAttributes = {};
+        // Задаем начальные данные
+        Object.assign(this._savedAttributes, this.fields());
 
         /**
-         * Измененные данные
+         * Данные, которые были изменены с момента последнего коммита
          * @type {AttributesMap}
          * @protected
          * */
@@ -306,8 +336,6 @@ export default class BaseModel extends BaseClass {
          * */
         this._relations = {};
 
-        // Задаем начальные данные
-        Object.assign(this._savedAttributes, this.fields());
         if (!isEmpty($attributes)) {
             this._innerSetAttributes($attributes);
             this.commitChanges();
@@ -416,11 +444,37 @@ export default class BaseModel extends BaseClass {
 
 
     /**
-     * Является ли модель измененной (требует сохранения)
+     * Shortland for this.getAttributes() method
+     * */
+    get attributes() {
+        return this.getAttributes();
+    }
+
+    /**
+     * Shortland for this.setAttributes() method
+     * */
+    set attributes(attrs) {
+        this.setAttributes(attrs);
+    }
+
+
+    /**
+     * Список названий аттрибутов, которые были изменены с момента последнего коммита и отличаются от сохраненных
+     * @return {String[]}
+     * */
+    get dirtyAttributesNames() {
+        return reduce(this._dirtyAttributes, (result, value, key) => {
+            return isEqual(value, this._savedAttributes[key]) ? result : result.concat(key);
+        }, []);
+    }
+
+
+    /**
+     * Является ли модель измененной (требует сохранения на стороне сервера)
      * @return {Boolean}
      * */
     get isDirty() {
-        return !isEmpty(this._dirtyAttributes);
+        return this.dirtyAttributesNames.length > 0;
     }
 
 
@@ -521,21 +575,14 @@ export default class BaseModel extends BaseClass {
 
 
     /**
-     * @return {AttributesMap} Измененные аттрибуты
+     * @return void
      * @protected
      * */
     _innerSetAttributes($attrs) {
-        const $filters = this.innerFilters();
-        const $pickedAttrs = pick($attrs, keys(this._savedAttributes));
-        let $changedAttrs = {};
-        each($pickedAttrs, ($value, $attr) => {
-            const $filteredValue = this.applyFilter($filters[$attr], $value);
-            if (!isEqual($filteredValue, this._savedAttributes[$attr])) {
-                $changedAttrs[$attr] = $filteredValue;
-            }
-        });
-        Object.assign(this._dirtyAttributes, $changedAttrs);
-        return $changedAttrs;
+        const filters = this.innerFilters();
+        const safeAttrs = pick($attrs, this.safeAttributes());
+        const withFilters = mapValues(safeAttrs, (value, key) => this.applyFilter(filters[key], value));
+        Object.assign(this._dirtyAttributes, withFilters);
     }
 
 
@@ -544,9 +591,12 @@ export default class BaseModel extends BaseClass {
      * @param {AttributesMap} $attrs
      * */
     setAttributes($attrs) {
-        const $changedAttrs = this._innerSetAttributes($attrs);
-        if (!isEmpty($changedAttrs)) {
-            this.emit(this.constructor.EVENT_ATTRIBUTES_CHANGE, $changedAttrs);
+        const beforeAttrs = this.dirtyAttributesNames;
+        this._innerSetAttributes($attrs);
+        const afterAttrs = this.dirtyAttributesNames;
+        const diff = difference(afterAttrs, beforeAttrs);
+        if (diff.length > 0) {
+            this.emit(this.constructor.EVENT_ATTRIBUTES_CHANGE, this.getAttributes(diff));
         }
     }
 
