@@ -465,10 +465,12 @@ export default class BaseStore extends BaseClass {
         const modelInStore = this.findById(model.getId());
         if (modelInStore) {
             modelInStore.setAttributes(model.getAttributes());
+            modelInStore.commitChanges();
             return {model: modelInStore, isCreated: false};
         }
 
         this._innerModels.push(model);
+        model.commitChanges();
         return {model, isCreated: true};
     }
 
