@@ -334,12 +334,11 @@ export default class BaseModel extends BaseClass {
          * */
         this._relations = {};
 
+        this.__createMagicProps();
         if (!isEmpty($attributes)) {
             this._innerSetAttributes($attributes);
             this.commitChanges();
         }
-
-        this.__createMagicProps();
     }
 
 
