@@ -1,6 +1,12 @@
 # Sitespring datamodel
+Framework and environment agnostic data management base classes, supporting 
+- fields validation
+- fetching
+- proxy to fetch and error handling
+- store of models
+- CRUD operations
+- work in browser and nodejs envs
 
-Набор базовых классов для работы с данными и прокси, использующих реактивность vue 3.
 
 Перед установкой в локальный проект, пакуем
 

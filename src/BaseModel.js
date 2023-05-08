@@ -575,6 +575,16 @@ export default class BaseModel extends BaseClass {
 
 
     /**
+     * Shortland helper for [this.getSavedAttributes] method
+     * to use in reactive views directly
+     * @return {object}
+     * */
+    get $() {
+        return this.getSavedAttributes();
+    }
+
+
+    /**
      * @return void
      * @protected
      * */
