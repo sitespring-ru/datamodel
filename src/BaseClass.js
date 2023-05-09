@@ -1,4 +1,4 @@
-import {forEach, hasIn, isArray, isEmpty, omit, set} from "lodash";
+import {forEach, hasIn, isArray, isEmpty, omit, set} from "lodash-es";
 import mitt from "mitt";
 
 /**

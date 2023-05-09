@@ -5,6 +5,7 @@
  */
 import BaseProxy from "../../src/BaseProxy.js";
 import axios from "axios";
+import {jest} from '@jest/globals'
 
 
 // Эмулируем модуль целиком
@@ -12,7 +13,7 @@ jest.mock('axios');
 
 // Эмулируем работу конструктора, т.к. наш BaseProxy будет создавать экземпляр axios через axios.create
 // @see https://stackoverflow.com/questions/51393952/mock-inner-axios-create
-axios.create.mockReturnThis();
+// axios.create.mockReturnThis();
 
 
 let $proxy;
@@ -32,7 +33,7 @@ test('Успешный запрос', (done) => {
     const response = {status: 200, data: mockData};
 
     // Эмулируем ответ
-    axios.request.mockResolvedValue(response);
+    $proxy.getAxiosInstance().request = jest.fn().mockResolvedValue(response);
 
     $proxy.doRequest(requestConfig)
         .then((data) => {
@@ -54,7 +55,7 @@ test('500 ошибка запроса', (done) => {
     const response = {status: 500, message: 'Internal Server Error'};
 
     // Эмулируем ответ
-    axios.request.mockRejectedValue({response});
+    $proxy.getAxiosInstance().request = jest.fn().mockRejectedValue({response});
 
     $proxy.doRequest(requestConfig)
         // Отлавливаем ошибку
@@ -75,7 +76,7 @@ test('422 Ошибка запроса с вложенными данными', (
     const response = {status: 422, message: 'Validation Error', data: {message: 'Nested envelope error'}};
 
     // Эмулируем ответ
-    axios.request.mockRejectedValue({response});
+    $proxy.getAxiosInstance().request = jest.fn().mockRejectedValue({response});
 
     $proxy.doRequest(requestConfig)
         // Отлавливаем ошибку
@@ -102,7 +103,7 @@ test('Токен авторизации + событие', (done) => {
     });
 
     // Эмулируем ответ
-    axios.request.mockResolvedValue({});
+    $proxy.getAxiosInstance().request = jest.fn().mockResolvedValue({});
     $proxy.doRequest();
 });
 
@@ -113,9 +114,10 @@ test('Токен авторизации: изменение через мето�
     // Создаем другой экземпляр, токен должен быть определен
     const $proxy2 = new BaseProxy();
     // Эмулируем ответ
-    axios.request.mockResolvedValue({});
+    $proxy2.getAxiosInstance().request = jest.fn().mockResolvedValue({});
+
     await $proxy2.doRequest();
-    expect(axios.request).toBeCalledWith({
+    expect($proxy2.getAxiosInstance().request).toBeCalledWith({
         headers: {
             'Authorization': 'Bearer 1234'
         }
@@ -123,5 +125,5 @@ test('Токен авторизации: изменение через мето�
 
     BaseProxy.setBearerToken(null);
     await $proxy2.doRequest();
-    expect(axios.request).toBeCalledWith({});
+    expect($proxy2.getAxiosInstance().request).toBeCalledWith({});
 });

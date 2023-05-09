@@ -1,4 +1,4 @@
-import {each, find, get, isEmpty, isEqual, isFunction, isMatch, map, remove, size, sumBy, values} from "lodash";
+import {each, find, get, isEmpty, isEqual, isFunction, isMatch, map, remove, size, sumBy, values} from "lodash-es";
 import BaseClass from "./BaseClass.js";
 import BaseModel from "./BaseModel.js";
 import BaseProxy from "./BaseProxy.js";

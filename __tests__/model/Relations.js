@@ -6,12 +6,13 @@
 import BaseModel from "../../src/BaseModel";
 import BaseStore from "../../src/BaseStore";
 import axios from "axios";
+import {jest} from '@jest/globals'
 
 // Эмулируем модуль целиком
 jest.mock('axios');
 // Эмулируем работу конструктора, т.к. наш BaseProxy будет создавать экземпляр axios через axios.create
 // @see https://stackoverflow.com/questions/51393952/mock-inner-axios-create
-axios.create.mockReturnThis();
+// axios.create.mockReturnThis();
 
 class Author extends BaseModel {
     entityName = 'author';

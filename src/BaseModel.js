@@ -1,29 +1,24 @@
 import {
     difference,
-    differenceBy,
-    each,
     forEach,
     get,
     has,
-    intersection,
-    intersectionWith,
     isArray,
     isEmpty,
     isEqual,
     isFunction,
     isString,
     keys,
-    map,
     mapValues,
     pick,
     reduce,
     values
-} from "lodash";
+} from "lodash-es";
 import BaseClass from "./BaseClass.js";
 import BaseProxy from "./BaseProxy.js";
 import validate from "validate.js";
 import dayjs from "dayjs";
-import BaseStore from "./BaseStore";
+import BaseStore from "./BaseStore.js";
 
 
 /**
@@ -570,7 +565,7 @@ export default class BaseModel extends BaseClass {
      * */
     getAttributes($names = null, $isDirty = true) {
         const $attrs = $isDirty ? {...this._savedAttributes, ...this._dirtyAttributes} : this._savedAttributes;
-        return $names ? pick($attrs, $names) : $attrs;
+        return  isArray($names) ? pick($attrs, $names) : $attrs;
     }
 
 
@@ -640,7 +635,7 @@ export default class BaseModel extends BaseClass {
         this.dropErrors();
 
         const $rules = this.rules();
-        const $constraintsToValidate = $names ? pick($rules, $names) : $rules;
+        const $constraintsToValidate = isArray($names) ? pick($rules, $names) : $rules;
         // Поскольку validate.js не поддерживает создание экземпляра
         // Возможно передать дополнительные опции при валидации, которые мы берем из конфигурации Модели
         const $options = {...this.getValidationConfig(), ...$extraConfig};

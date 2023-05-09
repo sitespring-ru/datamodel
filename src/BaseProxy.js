@@ -1,5 +1,5 @@
 import axios from "axios";
-import {get, set} from "lodash";
+import {get, set} from "lodash-es";
 import BaseClass from "./BaseClass.js";
 
 /**
