@@ -3,7 +3,6 @@
  * @homepage https://sitespring.ru
  * @licence Proprietary
  */
-import axios from "axios";
 import BaseModel from "../../src/BaseModel";
 import BaseStore from "../../src/BaseStore";
 import {jest} from '@jest/globals';
@@ -423,7 +422,7 @@ describe('Пагинация', () => {
     });
 
     test('Получение с сервера', async () => {
-        const $store = PersonsTestStore.createInstance({isPaginated: true, pageSize: 2});
+        const $store = new PersonsTestStore({isPaginated: true, pageSize: 2});
         //  Сервер вернет след страницу данных
         $store.doRequest = jest.fn().mockResolvedValue({
             data: {

@@ -302,87 +302,88 @@ export default class BaseStore extends BaseClass {
         return this.proxy.isRequesting();
     }
 
+    /**
+     * Стоит ли обрабатывать хранилище по странично
+     * @type {Boolean}
+     * */
+    isPaginated = false;
+
+    /**
+     * Url для получения данных с удаленного сервера
+     * @type {String}
+     *  */
+    fetchUrl = null;
+
+    /**
+     * Обычно 20 моделей стандартный лимит, чтобы запросить все модели можно установить в 0
+     * @type {Number}
+     * */
+    pageSize = 20;
+
+    /**
+     *  Автоматически сортировать модели при изменении стека сортировок
+     *  @type {Boolean}
+     *  */
+    autoSort = false;
+
+    /**
+     *  Автоматически фильтровать модели при изменении стека фильтров
+     *  @type {Boolean}
+     *  */
+    autoFilter = false;
+
+    /**
+     * @type {?BaseProxy}
+     * @private
+     * */
+    _innerProxy = null;
+
+    /**
+     * Стек хранимый моделей
+     * @type {BaseModel[]}
+     * @private
+     * */
+    _innerModels = [];
+
+    /**
+     * Внутренняя карта сортировок по id
+     * @type {Object.<String,SorterDefinition>}
+     * @private
+     * */
+    _innerSorters = {};
+
+    /**
+     * Внутренняя карта фильтров по id
+     * @type {Object.<String,FilterDefinition>}
+     * @private
+     * */
+    _innerFilters = {};
+
+    /**
+     * Были ли получены данные с сервера
+     * @type {Boolean}
+     * */
+    _isFetched = false;
+
+    /**
+     * Состояние ожидания Прокси
+     * @type {Boolean}
+     */
+    _isRequesting = false;
+
+    /**
+     * @type {?PaginationDefinition}
+     * @private
+     * */
+    _pagination = null;
+
 
     /**
      * @param {Object} config Дополнительная конфигурация
      * */
     constructor(config = {}) {
-        super(config);
-
-        /**
-         * Стоит ли обрабатывать хранилище по странично
-         * @type {Boolean}
-         * */
-        this.isPaginated = false;
-
-        /**
-         * Url для получения данных с удаленного сервера
-         * @type {String}
-         *  */
-        this.fetchUrl = null;
-
-        /**
-         * Обычно 20 моделей стандартный лимит, чтобы запросить все модели можно установить в 0
-         * @type {Number}
-         * */
-        this.pageSize = 20;
-
-        /**
-         *  Автоматически сортировать модели при изменении стека сортировок
-         *  @type {Boolean}
-         *  */
-        this.autoSort = false;
-
-        /**
-         *  Автоматически фильтровать модели при изменении стека фильтров
-         *  @type {Boolean}
-         *  */
-        this.autoFilter = false;
-
-        /**
-         * @type {?BaseProxy}
-         * @private
-         * */
-        this._innerProxy = null;
-
-        /**
-         * Стек хранимый моделей
-         * @type {BaseModel[]}
-         * @private
-         * */
-        this._innerModels = [];
-
-        /**
-         * Внутренняя карта сортировок по id
-         * @type {Object.<String,SorterDefinition>}
-         * @private
-         * */
-        this._innerSorters = {};
-
-        /**
-         * Внутренняя карта фильтров по id
-         * @type {Object.<String,FilterDefinition>}
-         * @private
-         * */
-        this._innerFilters = {};
-
-        /**
-         * Были ли получены данные с сервера
-         * @type {Boolean}
-         * */
-        this._isFetched = false;
-
-        /**
-         * Состояние ожидания Прокси
-         * @type {Boolean}
-         */
-        this._isRequesting = false;
-
-        /**
-         * @type {?PaginationDefinition}
-         * @private
-         * */
-        this._pagination = null;
+        super();
+        this.constructor.configure(this, config);
     }
 
 

@@ -1,4 +1,4 @@
-import {forEach, hasIn, isArray, isEmpty, omit, set} from "lodash-es";
+import {forEach, isArray, isEmpty, omit, set} from "lodash-es";
 import mitt from "mitt";
 
 /**
@@ -26,7 +26,7 @@ export default class BaseClass {
      * */
     constructor($config = {}) {
         if (!isEmpty($config)) {
-            Object.assign(this, $config);
+            Object.assign(this, $config)
         }
         this.init(arguments);
     }
@@ -36,6 +36,19 @@ export default class BaseClass {
      * Хук инициализации Класса
      * */
     init() {
+    }
+
+
+    static configure(instance, props) {
+        if (!isEmpty(props)) {
+            forEach(props, (val, prop) => {
+                if (!(prop in instance)) {
+                    throw new Error(`Unknown property "${prop}" in "${instance}"`);
+                }
+                set(instance, prop, val);
+            })
+        }
+        return instance;
     }
 
 
@@ -49,17 +62,8 @@ export default class BaseClass {
         if (!constructorName) {
             throw new Error('The "class" property must be present');
         }
-        const instance = new constructorName();
         const props = omit(defs, 'class');
-        if (!isEmpty(props)) {
-            forEach(props, (val, prop) => {
-                if (!hasIn(instance, prop)) {
-                    throw new Error(`Unknown property "${prop}"`);
-                }
-                set(instance, prop, val);
-            })
-        }
-        return instance;
+        return this.configure(new constructorName(), props);
     }
 
 
