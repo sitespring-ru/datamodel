@@ -8,14 +8,10 @@ Framework and environment agnostic data management base classes, supporting
 - work in browser and nodejs envs
 
 
-Перед установкой в локальный проект, пакуем
-
-    npm pack 
-
-Далее в нужном проекте устанавливаем
-
-    win>> npm i D:/projects/sitespring/repos/datamodel/sitespring-datamodel-x.y.z.tgz -D
-    unix>> npm i /projects/sitespring/repos/datamodel/sitespring-datamodel-x.y.z.tgz -D
+## Install as GitHub repo
+```shell
+npm i https://github.com/sitespring-ru/datamodel.git
+```
 
 ## Разработка
 
