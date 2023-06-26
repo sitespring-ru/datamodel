@@ -302,13 +302,6 @@ export default class BaseModel extends BaseClass {
         this._dirtyAttributes = {};
 
         /**
-         * Имеет ли модель id в базе данных на стороне сервера
-         * @type {Boolean}
-         * @protected
-         * */
-        this._isPhantom = true;
-
-        /**
          * Модель была удалена на стороне сервера
          * @type {Boolean}
          * @protected
@@ -497,7 +490,7 @@ export default class BaseModel extends BaseClass {
      * @return {boolean}
      * */
     get isPhantom() {
-        return !this.getId() || this._isPhantom;
+        return !this.getId();
     }
 
 
@@ -814,12 +807,10 @@ export default class BaseModel extends BaseClass {
         const url = this.urls()['fetch'];
         const method = this.verbs()['fetch'];
         const requestConfig = {url, method, ...$extraConfig};
-        this._isPhantom = true;
         const data = await this.doRequest(requestConfig);
         this.setAttributes(data);
         this.commitChanges();
         this.__fetchRelationsData(data);
-        this._isPhantom = false;
         this.emit(this.constructor.EVENT_FETCH, data);
         return Promise.resolve(data);
     }
@@ -858,7 +849,6 @@ export default class BaseModel extends BaseClass {
 
         this.setAttributes(responseData);
         this.commitChanges();
-        this._isPhantom = false;
         this.emit(this.constructor.EVENT_SAVE, responseData);
 
         return Promise.resolve(responseData);
@@ -875,7 +865,6 @@ export default class BaseModel extends BaseClass {
         const responseData = await this.doRequest({url, method, data});
         this.setAttributes(responseData);
         this.commitChanges();
-        this._isPhantom = false;
         this.emit(this.constructor.EVENT_CREATE, responseData);
         return Promise.resolve(responseData);
     }
