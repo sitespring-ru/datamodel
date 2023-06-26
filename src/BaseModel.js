@@ -497,7 +497,7 @@ export default class BaseModel extends BaseClass {
      * @return {boolean}
      * */
     get isPhantom() {
-        return this._isPhantom;
+        return !this.getId() || this._isPhantom;
     }
 
 
@@ -565,7 +565,7 @@ export default class BaseModel extends BaseClass {
      * */
     getAttributes($names = null, $isDirty = true) {
         const $attrs = $isDirty ? {...this._savedAttributes, ...this._dirtyAttributes} : this._savedAttributes;
-        return  isArray($names) ? pick($attrs, $names) : $attrs;
+        return isArray($names) ? pick($attrs, $names) : $attrs;
     }
 
 
