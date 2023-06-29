@@ -1,18 +1,5 @@
 import {
-    difference,
-    forEach,
-    get,
-    has,
-    isArray,
-    isEmpty,
-    isEqual,
-    isFunction,
-    isString,
-    keys,
-    mapValues,
-    pick,
-    reduce,
-    values
+    difference, forEach, get, has, isArray, isEmpty, isEqual, isFunction, isString, keys, mapValues, pick, reduce, values
 } from "lodash-es";
 import BaseClass from "./BaseClass.js";
 import BaseProxy from "./BaseProxy.js";
@@ -162,10 +149,7 @@ export default class BaseModel extends BaseClass {
     urls() {
         const $id = this.getId();
         return {
-            fetch: `${this.entityName}/${$id}`,
-            create: `${this.entityName}`,
-            save: `${this.entityName}/${$id}`,
-            delete: `${this.entityName}/${$id}`
+            fetch: `${this.entityName}/${$id}`, create: `${this.entityName}`, save: `${this.entityName}/${$id}`, delete: `${this.entityName}/${$id}`
         }
     }
 
@@ -176,10 +160,7 @@ export default class BaseModel extends BaseClass {
      * */
     verbs() {
         return {
-            fetch: 'GET',
-            create: 'POST',
-            save: 'PUT',
-            delete: 'DELETE'
+            fetch: 'GET', create: 'POST', save: 'PUT', delete: 'DELETE'
         }
     }
 
@@ -341,30 +322,31 @@ export default class BaseModel extends BaseClass {
                 return;
             }
 
-            // Создаем связь
-            if (this.getHasRelation(attrName)) {
-                this.__createRelation(attrName);
-                return;
-            }
-
             // Обычный геттер/сеттер для аттрибута
             Object.defineProperty(this, attrName, {
                 get() {
                     return this.getAttribute(attrName);
-                },
-                set(v) {
+                }, set(v) {
                     this.setAttribute(attrName, v);
                 }
             })
         });
+
+        forEach(this.relations(), (params, name) => {
+            // Property already exists
+            if (typeof this[name] !== "undefined") {
+                return;
+            }
+            this.__createRelation(name, params);
+        })
     }
 
 
     /**
      * @protected
      * */
-    __createRelation(name) {
-        const {type, model: modelConstructor, foreignKey, store: storeConstructor} = this.relations()[name];
+    __createRelation(name, props) {
+        const {type, model: modelConstructor, foreignKey, store: storeConstructor} = props;
 
         if (type === 'hasOne') {
             Object.defineProperty(this, name, {
@@ -375,8 +357,7 @@ export default class BaseModel extends BaseClass {
                         this._relations[name] = model;
                     }
                     return this._relations[name];
-                },
-                set(model) {
+                }, set(model) {
                     if (!(model instanceof modelConstructor)) {
                         throw new Error(`${name} relation expect ${modelConstructor.name} instance, ${model.constructor.name} given`);
                     }
@@ -395,11 +376,9 @@ export default class BaseModel extends BaseClass {
                 get() {
                     if (!this._relations[name]) {
                         const store = storeConstructorReal.createInstance({
-                            model: modelConstructor,
-                            filters: {
+                            model: modelConstructor, filters: {
                                 id: {
-                                    property: foreignKey,
-                                    value: this.getId()
+                                    property: foreignKey, value: this.getId()
                                 }
                             }
                         });
@@ -407,8 +386,7 @@ export default class BaseModel extends BaseClass {
                         this._relations[name] = store;
                     }
                     return this._relations[name];
-                },
-                set(store) {
+                }, set(store) {
                     if (!(store instanceof storeConstructorReal)) {
                         throw new Error(`${name} relation expect ${storeConstructorReal.name} instance, ${store.constructor.name} given`);
                     }

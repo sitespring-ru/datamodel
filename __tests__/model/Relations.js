@@ -59,8 +59,8 @@ class Book extends BaseModel {
         return {
             ...super.fields(),
             title: 'bar',
-            articles: [],
-            author: null,
+            // articles: [],
+            // author: null,
             author_id: null
         };
     }
