@@ -20,9 +20,9 @@ import dayjs from "dayjs";
 
 
 /**
- * @author Evgeny Shevtsov, info@sitespring.ru
- * @homepage https://sitespring.ru
- * @licence Proprietary
+ * @author Evgeny Shevtsov, g.info.hh@gmail.com
+ * 
+ * 
  *
  * The model schema of data can be shared between node and browser envs
  * @class ModelSchema

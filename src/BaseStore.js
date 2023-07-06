@@ -5,9 +5,9 @@ import BaseProxy from "./BaseProxy.js";
 
 /**
  * Базовый функционал хранилища
- * @author Evgeny Shevtsov, info@sitespring.ru
- * @homepage https://sitespring.ru
- * @licence Proprietary
+ * @author Evgeny Shevtsov, g.info.hh@gmail.com
+ * 
+ * 
  *
  */
 export default class BaseStore extends BaseClass {

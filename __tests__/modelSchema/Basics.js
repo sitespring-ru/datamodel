@@ -1,6 +1,6 @@
 /**
- * @author Evgeny Shevtsov, info@sitespring.ru
- * @homepage https://sitespring.ru
+ * @author Evgeny Shevtsov, g.info.hh@gmail.com
+ * 
  * @licence Proprietary
  */
 import ModelSchema from "../../src/ModelSchema";

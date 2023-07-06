@@ -4,9 +4,9 @@ import mitt from "mitt";
 /**
  * Базовый класс поддерживающий конфигурацию и события
  *
- * @author Evgeny Shevtsov, info@sitespring.ru
- * @homepage https://sitespring.ru
- * @licence Proprietary
+ * @author Evgeny Shevtsov, g.info.hh@gmail.com
+ * 
+ * 
  */
 export default class BaseClass {
     /**

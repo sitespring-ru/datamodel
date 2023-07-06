@@ -24,9 +24,9 @@ import BaseStore from "./BaseStore.js";
 /**
  * Базовая модель? поддерживающая аттрибуты, валидацию, прокси для запросов к серверу
  *
- * @author Evgeny Shevtsov, info@sitespring.ru
- * @homepage https://sitespring.ru
- * @licence Proprietary
+ * @author Evgeny Shevtsov, g.info.hh@gmail.com
+ * 
+ * 
  */
 export default class BaseModel extends BaseClass {
     /**

@@ -11,7 +11,7 @@
     },
     "author": "Evgeny Shevcov",
     "private": true,
-    "license": "Commercial",
+    "license": "MIT",
     "files": [
         "src",
         "lib",

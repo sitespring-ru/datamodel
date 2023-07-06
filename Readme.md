@@ -26,3 +26,6 @@ npm i https://github.com/sitespring-ru/datamodel.git
 Компиляция babel
 
     npm run build
+
+----------
+License [MIT](https://opensource.org/license/mit).

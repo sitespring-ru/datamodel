@@ -5,8 +5,8 @@ import BaseClass from "./BaseClass.js";
 /**
  * Базовый класс для запросов - обертка для axios с событиями и токеном авторизации
  *
- * @author Evgeny Shevtsov, info@sitespring.ru
- * @homepage https://sitespring.ru
+ * @author Evgeny Shevtsov, g.info.hh@gmail.com
+ * 
  */
 export default class BaseProxy extends BaseClass {
     /**
