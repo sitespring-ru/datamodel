@@ -1,5 +1,7 @@
 # Sitespring datamodel
-Framework and environment agnostic data management base classes, supporting 
+
+Framework and environment agnostic data management base classes, supporting
+
 - fields validation
 - fetching
 - proxy to fetch and error handling
@@ -7,8 +9,8 @@ Framework and environment agnostic data management base classes, supporting
 - CRUD operations
 - work in browser and nodejs envs
 
-
 ## Install as GitHub repo
+
 ```shell
 npm i https://github.com/sitespring-ru/datamodel.git
 ```
@@ -28,4 +30,5 @@ npm i https://github.com/sitespring-ru/datamodel.git
     npm run build
 
 ----------
-License [MIT](https://opensource.org/license/mit).
+This project is licensed under the terms of the [MIT](https://opensource.org/license/mit)
+license. See [Readme.md](Readme.md) for details.
