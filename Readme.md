@@ -31,4 +31,4 @@ npm i https://github.com/sitespring-ru/datamodel.git
 
 ----------
 This project is licensed under the terms of the [MIT](https://opensource.org/license/mit)
-license. See [Readme.md](Readme.md) for details.
+license. See [LICENSE.md](LICENSE.md) for details.
