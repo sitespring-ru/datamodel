@@ -1,4 +1,4 @@
-import {each, find, get, isEmpty, isEqual, isFunction, isMatch, map, remove, size, sumBy, values} from "lodash-es";
+import {each, find, get, isEmpty, isEqual, isFunction, isMatch, map, merge, remove, size, sumBy, values} from "lodash-es";
 import BaseClass from "./BaseClass.js";
 import BaseModel from "./BaseModel.js";
 import BaseProxy from "./BaseProxy.js";
@@ -570,7 +570,8 @@ export default class BaseStore extends BaseClass {
         const pageParams = this.isPaginated ? this._serializePaginationToRequestParams() : {};
         const params = {...filtersParams, ...sortersParams, ...pageParams};
         const url = this.buildFetchUrl();
-        const requestConfig = {url, params, ...config};
+        // lodash merge to do deep merging
+        const requestConfig = merge({}, {url, params}, {...config});
         try {
             const responseData = await this.doRequest(requestConfig);
             const models = this._parseModelsFromResponseData(responseData);
