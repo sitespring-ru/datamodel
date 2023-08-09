@@ -212,7 +212,7 @@ export default class BaseStore extends BaseClass {
         if (!this.isPaginated) {
             return false;
         }
-        return !this._isFetched || this._pagination.currentPage < this._pagination.pageCount;
+        return !this._isFetched || this.pagination.currentPage < this.pagination.pageCount;
     };
 
 
@@ -224,8 +224,8 @@ export default class BaseStore extends BaseClass {
         if (!this.isPaginated) {
             return this._innerModels;
         }
-        const start = (this._pagination.currentPage - 1) * this._pagination.perPage;
-        const end = start + this._pagination.perPage;
+        const start = (this.pagination.currentPage - 1) * this.pagination.perPage;
+        const end = start + this.pagination.perPage;
         return this._innerModels.slice(start, end);
     }
 
