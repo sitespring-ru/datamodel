@@ -6,8 +6,8 @@ import BaseProxy from "./BaseProxy.js";
 /**
  * Базовый функционал хранилища
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
- * 
- * 
+ *
+ *
  *
  */
 export default class BaseStore extends BaseClass {
@@ -221,12 +221,7 @@ export default class BaseStore extends BaseClass {
      * @return {BaseModel[]}
      * */
     get models() {
-        if (!this.isPaginated) {
-            return this._innerModels;
-        }
-        const start = (this.pagination.currentPage - 1) * this.pagination.perPage;
-        const end = start + this.pagination.perPage;
-        return this._innerModels.slice(start, end);
+        return this._innerModels;
     }
 
 
