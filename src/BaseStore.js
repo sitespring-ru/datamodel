@@ -622,7 +622,7 @@ export default class BaseStore extends BaseClass {
         if (!$filter.property) {
             throw new Error('Filter`s property must be set');
         }
-        if (!$filter.operator || ['>', '<', '=', 'like', '>=', '<='].indexOf($filter.operator) < 0) {
+        if (!$filter.operator || ['>', '<', '=', 'like', '>=', '<=', 'in', 'not in', 'between'].indexOf($filter.operator) < 0) {
             $filter.operator = '=';
         }
         if (!$filter.value) {
