@@ -7,8 +7,12 @@ import BaseProxy from "./BaseProxy.js";
  * Базовый функционал хранилища
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
  *
- *
- *
+ * @property {BaseModel} model The model constructor
+ * @property {Boolean} isPaginated Стоит ли обрабатывать хранилище по странично
+ * @property {String} fetchUrl Url для получения данных с удаленного сервера
+ * @property {Number} pageSize Limit models per page, 20 by default
+ * @property {Boolean} autoSort apply auto sorting, default false
+ * @property {Boolean} autoFilter apply auto filtering, default false
  */
 export default class BaseStore extends BaseClass {
     /**
@@ -86,11 +90,65 @@ export default class BaseStore extends BaseClass {
      * */
     static EVENT_FETCH = 'fetch';
 
+
     /**
-     * Конструктор модели
-     * @type {typeof BaseModel}
+     * @param {Object} config Дополнительная конфигурация
      * */
-    model = BaseModel;
+    constructor(config = {}) {
+        super(config);
+
+        /**
+         * Стек хранимый моделей
+         * @type {BaseModel[]}
+         * @private
+         * */
+        this._innerModels = [];
+
+        /**
+         * Внутренняя карта сортировок по id
+         * @type {Object.<String,SorterDefinition>}
+         * @private
+         * */
+        this._innerSorters = {};
+
+        /**
+         * Внутренняя карта фильтров по id
+         * @type {Object.<String,FilterDefinition>}
+         * @private
+         * */
+        this._innerFilters = {};
+
+        /**
+         * Были ли получены данные с сервера
+         * @type {Boolean}
+         * */
+        this._isFetched = false;
+
+        /**
+         * Состояние ожидания Прокси
+         * @type {Boolean}
+         */
+        this._isRequesting = false;
+
+        /**
+         * @type {?PaginationDefinition}
+         * @private
+         * */
+        this._pagination = null;
+    }
+
+    get defaults() {
+        return {
+            ...super.defaults,
+            model: BaseModel,
+            proxy: BaseProxy.globalDefaultProxyConfig(),
+            isPaginated: false,
+            fetchUrl: null,
+            pageSize: 20,
+            autoSort: false,
+            autoFilter: false
+        }
+    }
 
 
     /**
@@ -134,13 +192,6 @@ export default class BaseStore extends BaseClass {
         return this.getSorters();
     }
 
-    /**
-     * Конфигурация для Прокси
-     * @return {Object}
-     * */
-    getProxyConfig() {
-        return BaseProxy.globalDefaultProxyConfig();
-    };
 
     /**
      * Конфигурация создаваемой Модели
@@ -283,10 +334,13 @@ export default class BaseStore extends BaseClass {
      * */
     get proxy() {
         if (!this._innerProxy) {
-            // Берем конфигурацию Прокси переданную в конструктор
-            this._innerProxy = this.constructor.createInstance(this.getProxyConfig());
+            this._innerProxy = BaseClass.createInstance(this.defaults.proxy);
         }
         return this._innerProxy;
+    }
+
+    set proxy(config) {
+        this._innerProxy = BaseClass.createInstance(config);
     }
 
 
@@ -295,90 +349,6 @@ export default class BaseStore extends BaseClass {
      * */
     get isRequesting() {
         return this.proxy.isRequesting();
-    }
-
-    /**
-     * Стоит ли обрабатывать хранилище по странично
-     * @type {Boolean}
-     * */
-    isPaginated = false;
-
-    /**
-     * Url для получения данных с удаленного сервера
-     * @type {String}
-     *  */
-    fetchUrl = null;
-
-    /**
-     * Обычно 20 моделей стандартный лимит, чтобы запросить все модели можно установить в 0
-     * @type {Number}
-     * */
-    pageSize = 20;
-
-    /**
-     *  Автоматически сортировать модели при изменении стека сортировок
-     *  @type {Boolean}
-     *  */
-    autoSort = false;
-
-    /**
-     *  Автоматически фильтровать модели при изменении стека фильтров
-     *  @type {Boolean}
-     *  */
-    autoFilter = false;
-
-    /**
-     * @type {?BaseProxy}
-     * @private
-     * */
-    _innerProxy = null;
-
-    /**
-     * Стек хранимый моделей
-     * @type {BaseModel[]}
-     * @private
-     * */
-    _innerModels = [];
-
-    /**
-     * Внутренняя карта сортировок по id
-     * @type {Object.<String,SorterDefinition>}
-     * @private
-     * */
-    _innerSorters = {};
-
-    /**
-     * Внутренняя карта фильтров по id
-     * @type {Object.<String,FilterDefinition>}
-     * @private
-     * */
-    _innerFilters = {};
-
-    /**
-     * Были ли получены данные с сервера
-     * @type {Boolean}
-     * */
-    _isFetched = false;
-
-    /**
-     * Состояние ожидания Прокси
-     * @type {Boolean}
-     */
-    _isRequesting = false;
-
-    /**
-     * @type {?PaginationDefinition}
-     * @private
-     * */
-    _pagination = null;
-
-
-    /**
-     * @param {Object} config Дополнительная конфигурация
-     * */
-    constructor(config = {}) {
-        super();
-        this.constructor.configure(this, config);
     }
 
 
@@ -414,15 +384,16 @@ export default class BaseStore extends BaseClass {
      * Добавление моделей в Хранилище пачкой
      * Смысл в том чтобы пересчитать пагинацию и вызвать события после всех добавлений один раз
      * @param {BaseModel[]|object[]} modelsOrAttrs
+     * @param {{isPhantom:Boolean}} options
      * @return {BaseModel[]} Стек добавленных и обновленных Моделей
      *
      * @fires BaseStore#EVENT_MODELS_CHANGE
      * */
-    loadModels(modelsOrAttrs) {
+    loadModels(modelsOrAttrs, options = {}) {
         let handledModels = [];
         let hasCreated = false;
         each(modelsOrAttrs, (def) => {
-            const {model, isCreated} = this.__internalAdd(def);
+            const {model, isCreated} = this.__internalAdd(def, options);
             handledModels.push(model);
             if (isCreated) {
                 hasCreated = true;
@@ -443,12 +414,14 @@ export default class BaseStore extends BaseClass {
     /**
      * Добавляем Модель в хранилище без обновления пагинации, вызова события и пр.
      * @param {BaseModel|object} modelOrAttrs Модель или аттрибуты для создания
+     * @param {{isPhantom:Boolean}} options
      * @return {{model:BaseModel,isCreated:boolean}} Экземпляр добавленной или обновленной  модели + флаг добавления
      * @private
      * */
-    __internalAdd(modelOrAttrs) {
+    __internalAdd(modelOrAttrs, options) {
         /** @type {BaseModel} */
         let model;
+        const {isPhantom} = options;
         // Был передан объект аттрибутов
         if (!(modelOrAttrs instanceof this.model)) {
             model = BaseClass.createInstance(this.getModelConfig());
@@ -462,11 +435,13 @@ export default class BaseStore extends BaseClass {
         if (modelInStore) {
             modelInStore.setAttributes(model.getAttributes());
             modelInStore.commitChanges();
+            modelInStore.isPhantom = !!isPhantom;
             return {model: modelInStore, isCreated: false};
         }
 
         this._innerModels.push(model);
         model.commitChanges();
+        model.isPhantom = !!isPhantom;
         return {model, isCreated: true};
     }
 

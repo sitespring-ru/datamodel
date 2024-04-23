@@ -1,6 +1,6 @@
 /**
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
- * 
+ *
  * @licence Proprietary
  */
 import BaseModel from "../../src/BaseModel";
@@ -67,7 +67,7 @@ describe('Работа с аттрибутами', () => {
             age: 16,
             dob: null
         });
-        expect($model.isPhantom).toBeFalsy();
+        expect($model.isPhantom).toBeTruthy();
         expect($model.isDirty).toBeFalsy();
         expect($model.getAttribute('created_at')).toBeInstanceOf(Date);
     });
@@ -215,7 +215,7 @@ describe('Валидация на стороне сервера', () => {
 describe('CRUD rest api', () => {
     test('Fetch', (done) => {
         const $model = new TestModel({id: 55});
-        expect($model.isPhantom).toBeFalsy();
+        expect($model.isPhantom).toBeTruthy();
 
         $model.proxy.doRequest = jest.fn().mockResolvedValue({dob: '2000-02-03', name: 'Mike'});
         $model.on(TestModel.EVENT_FETCH, ($data) => {
@@ -240,7 +240,7 @@ describe('CRUD rest api', () => {
 
     test('Create', (done) => {
         const $model = new TestModel({created_at: '2022-03-11T01:33:07', id: 55});
-        expect($model.isPhantom).toBeFalsy();
+        expect($model.isPhantom).toBeTruthy();
 
         $model.proxy.doRequest = jest.fn().mockResolvedValue({dob: '2000-02-03', name: 'Mike', id: 55});
         $model.on(TestModel.EVENT_CREATE, ($data) => {

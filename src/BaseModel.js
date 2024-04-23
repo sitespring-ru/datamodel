@@ -25,8 +25,8 @@ import BaseStore from "./BaseStore.js";
  * Базовая модель? поддерживающая аттрибуты, валидацию, прокси для запросов к серверу
  *
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
- * 
- * 
+ *
+ * @property {Boolean} isPhantom Имеет ли модель id в базе данных на стороне сервера
  */
 export default class BaseModel extends BaseClass {
     /**
@@ -37,7 +37,7 @@ export default class BaseModel extends BaseClass {
      * */
 
     /**
-     * Карта аттрибутов где ключи названия полей
+     * Карта аттрибутов, где ключи названия полей
      * @typedef {Object.<String,*>} AttributesMap
      * */
 
@@ -285,6 +285,8 @@ export default class BaseModel extends BaseClass {
     constructor($attributes = {}, $config = {}) {
         super($config);
 
+        this.isPhantom = true;
+
         /**
          * Сохраненные данные
          * @type {AttributesMap}
@@ -482,15 +484,6 @@ export default class BaseModel extends BaseClass {
             this.__generatedLastID = 0;
         }
         return `${this.name}-${++this.__generatedLastID}`;
-    }
-
-
-    /**
-     * Имеет ли модель id в базе данных на стороне сервера
-     * @return {boolean}
-     * */
-    get isPhantom() {
-        return !this.getId();
     }
 
 
@@ -811,6 +804,7 @@ export default class BaseModel extends BaseClass {
         this.setAttributes(data);
         this.commitChanges();
         this.__fetchRelationsData(data);
+        this.isPhantom = false;
         this.emit(this.constructor.EVENT_FETCH, data);
         return Promise.resolve(data);
     }
@@ -849,6 +843,7 @@ export default class BaseModel extends BaseClass {
 
         this.setAttributes(responseData);
         this.commitChanges();
+        this.isPhantom = false;
         this.emit(this.constructor.EVENT_SAVE, responseData);
 
         return Promise.resolve(responseData);
@@ -865,6 +860,7 @@ export default class BaseModel extends BaseClass {
         const responseData = await this.doRequest({url, method, data});
         this.setAttributes(responseData);
         this.commitChanges();
+        this.isPhantom = false;
         this.emit(this.constructor.EVENT_CREATE, responseData);
         return Promise.resolve(responseData);
     }
@@ -878,6 +874,7 @@ export default class BaseModel extends BaseClass {
         const method = this.verbs()['delete'];
         await this.doRequest({url, method});
         this._isDeleted = true;
+        this.isPhantom = true;
         this.emit(this.constructor.EVENT_DELETE);
         return Promise.resolve(true);
     }

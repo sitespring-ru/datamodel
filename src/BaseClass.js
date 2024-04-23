@@ -1,12 +1,12 @@
-import {forEach, isArray, isEmpty, omit, set} from "lodash-es";
+import {forEach, isArray, isEmpty, omit, set, defaults} from "lodash-es";
 import mitt from "mitt";
 
 /**
  * Базовый класс поддерживающий конфигурацию и события
  *
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
- * 
- * 
+ *
+ *
  */
 export default class BaseClass {
     /**
@@ -25,10 +25,11 @@ export default class BaseClass {
      * @param {?Object} [$config] Объект конфигурации Конструктора
      * */
     constructor($config = {}) {
+        defaults($config, this.defaults);
         if (!isEmpty($config)) {
             Object.assign(this, $config)
         }
-        this.init(arguments);
+        this.init();
     }
 
 
@@ -38,6 +39,9 @@ export default class BaseClass {
     init() {
     }
 
+    get defaults() {
+        return {};
+    }
 
     static configure(instance, props) {
         if (!isEmpty(props)) {
@@ -54,10 +58,14 @@ export default class BaseClass {
 
     /**
      * Хелпер для создания экземпляра класса
-     * @param {?Object} [defs] Объект содержащий ключ class который определяет конструктор
+     * @param {?Object|Function} [defs] Объект содержащий ключ class который определяет конструктор или сам конструктор
      * @return {BaseClass|BaseStore|BaseProxy|BaseModel|Object} экземпляр класса
      * */
     static createInstance(defs = {}) {
+        // Handle case when defs is constructor directly
+        if (typeof defs === 'function') {
+            return new defs();
+        }
         const constructorName = defs.class || this;
         if (!constructorName) {
             throw new Error('The "class" property must be present');

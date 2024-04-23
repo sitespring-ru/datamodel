@@ -1,11 +1,11 @@
 /**
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
- * 
+ *
  * @licence Proprietary
  */
 import BaseModel from "../../src/BaseModel";
 import BaseStore from "../../src/BaseStore";
-import {jest} from '@jest/globals';
+import {expect, jest} from '@jest/globals';
 
 
 // Эмулируем модуль целиком
@@ -25,8 +25,14 @@ class PersonTestModel extends BaseModel {
 }
 
 class PersonsTestStore extends BaseStore {
-    model = PersonTestModel;
+    get defaults() {
+        return {
+            ...super.defaults,
+            model: PersonTestModel
+        }
+    }
 }
+
 
 
 describe('Работа с моделями', () => {
