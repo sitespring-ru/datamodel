@@ -141,7 +141,7 @@ export default class BaseStore extends BaseClass {
         return {
             ...super.defaults,
             model: BaseModel,
-            proxy: BaseProxy.globalDefaultProxyConfig(),
+            proxy: this.getProxyConfig(),
             isPaginated: false,
             fetchUrl: null,
             pageSize: 20,
@@ -327,6 +327,15 @@ export default class BaseStore extends BaseClass {
         return !!this.isPaginated;
     }
 
+    /**
+     * Конфигурация для Прокси
+     * @return {Object}
+     * @deprecated Legacy support
+     * */
+    getProxyConfig() {
+        return BaseProxy.globalDefaultProxyConfig();
+    };
+
 
     /**
      * Создание прокси для запросов в контексте Модели
@@ -418,7 +427,7 @@ export default class BaseStore extends BaseClass {
      * @return {{model:BaseModel,isCreated:boolean}} Экземпляр добавленной или обновленной  модели + флаг добавления
      * @private
      * */
-    __internalAdd(modelOrAttrs, options) {
+    __internalAdd(modelOrAttrs, options = {}) {
         /** @type {BaseModel} */
         let model;
         const {isPhantom} = options;
