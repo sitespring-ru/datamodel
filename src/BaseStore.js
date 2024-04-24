@@ -146,7 +146,9 @@ export default class BaseStore extends BaseClass {
             fetchUrl: null,
             pageSize: 20,
             autoSort: false,
-            autoFilter: false
+            autoFilter: false,
+            filters: {},
+            sorters: {}
         }
     }
 
@@ -870,7 +872,7 @@ export default class BaseStore extends BaseClass {
      * @protected
      * */
     _parsePaginationFromResponse(response) {
-        let metas = get(response, 'data._meta');
+        let metas = get(response, '_meta');
         if (!metas) {
             return null;
         }

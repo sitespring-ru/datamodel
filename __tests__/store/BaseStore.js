@@ -34,7 +34,6 @@ class PersonsTestStore extends BaseStore {
 }
 
 
-
 describe('Работа с моделями', () => {
     test('Добавление', (done) => {
         const $model = new PersonTestModel({name: 'xoxa', age: 37});
@@ -425,14 +424,12 @@ describe('Пагинация', () => {
         const $store = new PersonsTestStore({isPaginated: true, pageSize: 2});
         //  Сервер вернет след страницу данных
         $store.doRequest = jest.fn().mockResolvedValue({
-            data: {
-                data: mockModels.slice(2, 4),
-                _meta: {
-                    currentPage: 1,
-                    perPage: 2,
-                    totalCount: 5,
-                    pageCount: 3
-                }
+            data: mockModels.slice(2, 4),
+            _meta: {
+                currentPage: 1,
+                perPage: 2,
+                totalCount: 5,
+                pageCount: 3
             }
         });
         // Хранилище еще не загружалось удаленно
