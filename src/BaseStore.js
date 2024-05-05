@@ -135,21 +135,33 @@ export default class BaseStore extends BaseClass {
          * @private
          * */
         this._pagination = null;
-    }
 
-    get defaults() {
-        return {
-            ...super.defaults,
-            model: BaseModel,
-            proxy: this.getProxyConfig(),
-            isPaginated: false,
-            fetchUrl: null,
-            pageSize: 20,
-            autoSort: false,
-            autoFilter: false,
-            filters: {},
-            sorters: {}
+        if (config.sorters) {
+            this.setSorters(config.sorters)
         }
+
+        if (config.filters) {
+            this.setFilters(config.filters)
+        }
+
+        if (config.autoFilter) {
+            this.autoFilter = Boolean(config.autoFilter);
+        }
+
+        if (config.autoSort) {
+            this.autoSort = Boolean(config.autoSort);
+        }
+
+        if (config.isPaginated) {
+            this.isPaginated = Boolean(config.isPaginated);
+        }
+        this.pageSize = config.pageSize ?? 20;
+
+        this.model = config.model ?? BaseModel;
+
+        this.proxy = config.proxy;
+
+        this.fetchUrl = config.fetchUrl ?? null;
     }
 
 
@@ -332,7 +344,6 @@ export default class BaseStore extends BaseClass {
     /**
      * Конфигурация для Прокси
      * @return {Object}
-     * @deprecated Legacy support
      * */
     getProxyConfig() {
         return BaseProxy.globalDefaultProxyConfig();
@@ -351,7 +362,19 @@ export default class BaseStore extends BaseClass {
     }
 
     set proxy(config) {
-        this._innerProxy = BaseClass.createInstance(config);
+        if (typeof config === 'function') {
+            this._innerProxy = new config();
+            return;
+        }
+        if (typeof config === 'object') {
+            this._innerProxy = new config({...this.getProxyConfig(), ...config});
+            return;
+        }
+        // otherwise destroy proxy
+        if (this._innerProxy && this._innerProxy.destroy) {
+            this._innerProxy.destroy();
+        }
+        this._innerProxy = null;
     }
 
 
@@ -854,8 +877,7 @@ export default class BaseStore extends BaseClass {
         let params = {};
         if (this.hasNextPage) {
             Object.assign(params, {
-                limit: this.pageSize,
-                page: this.pageNumber
+                limit: this.pageSize, page: this.pageNumber
             });
             // Если мы уже получили первую порцию данных, то хотим след страницу
             if (this.isFetched) {
@@ -877,10 +899,7 @@ export default class BaseStore extends BaseClass {
             return null;
         }
         return {
-            totalCount: metas.totalCount,
-            currentPage: metas.currentPage,
-            perPage: metas.perPage,
-            pageCount: metas.pageCount
+            totalCount: metas.totalCount, currentPage: metas.currentPage, perPage: metas.perPage, pageCount: metas.pageCount
         }
     }
 

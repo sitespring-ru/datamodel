@@ -70,7 +70,7 @@ describe('Работа с моделями', () => {
 
     test('Очищение', () => {
         /** @type {PersonsTestStore} $store */
-        const $store = PersonsTestStore.createInstance({isPaginated: true, pageSize: 2});
+        const $store = new PersonsTestStore({isPaginated: true, pageSize: 2});
         $store.loadModels([{name: 'xoxa1', age: 37}, {name: 'xoxa2', age: 37}, {name: 'xoxa3', age: 37}]);
 
         expect($store.isEmpty).toBeFalsy();
@@ -121,7 +121,7 @@ describe('Работа с моделями', () => {
 
     test('Загрузка с сервера', (done) => {
         /** @type {PersonsTestStore} $store */
-        const $store = PersonsTestStore.createInstance({fetchUrl: 'https://api.com'});
+        const $store = new PersonsTestStore({fetchUrl: 'https://api.com'});
         const mockModels = [
             {id: 1, name: 'foo'},
             {id: 2, name: 'xoxa1', age: 37}
@@ -139,7 +139,7 @@ describe('Работа с моделями', () => {
 
     test('Загрузка с сервера один раз', async () => {
         /** @type {PersonsTestStore} $store */
-        const $store = PersonsTestStore.createInstance({fetchUrl: 'https://api.com'});
+        const $store = new PersonsTestStore({fetchUrl: 'https://api.com'});
         $store.doRequest = jest.fn();
 
         await $store.ensureFetched();
@@ -154,7 +154,7 @@ describe('Работа с моделями', () => {
 
     test('Перезагрузка', (done) => {
         /** @type {PersonsTestStore} $store */
-        const $store = PersonsTestStore.createInstance({fetchUrl: 'https://api.com'});
+        const $store = new PersonsTestStore({fetchUrl: 'https://api.com'});
         const mockModels = [
             {id: 1, name: 'foo'},
             {id: 2, name: 'xoxa1', age: 37}
@@ -175,7 +175,7 @@ describe('Работа с моделями', () => {
 describe('Работа с фильтрами', () => {
     test('Добавление и удаление через конструктор', () => {
         /** @type {PersonsTestStore} */
-        let $store = PersonsTestStore.createInstance({
+        let $store = new PersonsTestStore({
             filters: {
                 byAge: {property: 'age'}
             }
@@ -226,7 +226,7 @@ describe('Работа с фильтрами', () => {
 
     test('Фильтрация на стороне сервера', async () => {
         /** @type {PersonsTestStore} */
-        let $store = PersonsTestStore.createInstance({fetchUrl: 'https://api.com'});
+        let $store = new PersonsTestStore({fetchUrl: 'https://api.com'});
         $store.setFilters({
             byAge: {property: 'age', value: 16, operator: '>='},
             byName: {property: 'name'}
@@ -243,7 +243,7 @@ describe('Работа с фильтрами', () => {
 
     test('Авто фильтрация', async () => {
         /** @type {PersonsTestStore} */
-        let $store = PersonsTestStore.createInstance({autoFilter: true});
+        let $store = new PersonsTestStore({autoFilter: true});
         $store.doRequest = jest.fn();
 
         await $store.addFilter('byName', {property: 'name'});
@@ -277,7 +277,7 @@ describe('Работа с фильтрами', () => {
 describe('Работа с сортировкой', () => {
     test('Через конструктор', () => {
         /** @type {PersonsTestStore} */
-        let $store = PersonsTestStore.createInstance({
+        let $store = new PersonsTestStore({
             sorters: {
                 id1: {property: 'age', direction: 'desc'}
             }
@@ -318,7 +318,7 @@ describe('Работа с сортировкой', () => {
     });
 
     test('Сортировка на стороне сервера', async () => {
-        let $store = PersonsTestStore.createInstance({fetchUrl: 'https://api.com'});
+        let $store = new PersonsTestStore({fetchUrl: 'https://api.com'});
         $store.setSorters({age: {property: 'age', direction: 'desc'}, name: {property: 'name'}});
         $store.doRequest = jest.fn();
         await $store.fetch();
@@ -332,7 +332,7 @@ describe('Работа с сортировкой', () => {
 
     test('Авто сортировка', async () => {
         /** @type {PersonsTestStore} */
-        let $store = PersonsTestStore.createInstance({autoSort: true});
+        let $store = new PersonsTestStore({autoSort: true});
         $store.doRequest = jest.fn();
 
         await $store.addSorter('byName', {property: 'name'});
@@ -374,7 +374,7 @@ describe('Пагинация', () => {
     const modelsToData = ($models) => $models.map($model => $model.getAttributes());
 
     test('Работа с локальными данными', () => {
-        const $store = PersonsTestStore.createInstance({isPaginated: true, pageSize: 2});
+        const $store = new PersonsTestStore({isPaginated: true, pageSize: 2});
         $store.loadModels(mockModels);
         expect($store.pagination).toEqual({
             currentPage: 3,
@@ -385,7 +385,7 @@ describe('Пагинация', () => {
     });
 
     test('Проверка свойства', () => {
-        const $store = PersonsTestStore.createInstance({isPaginated: true});
+        const $store = new PersonsTestStore({isPaginated: true});
         expect($store.hasPagination).toBeTruthy();
 
         $store.isPaginated = false;
@@ -395,7 +395,7 @@ describe('Пагинация', () => {
 
     test('Изменение размера страницы', (done) => {
         /** @type {PersonsTestStore} */
-        const $store = PersonsTestStore.createInstance({isPaginated: true, pageSize: 2});
+        const $store = new PersonsTestStore({isPaginated: true, pageSize: 2});
         $store.loadModels(mockModels);
         expect($store.pageNumber).toEqual(3);
 
