@@ -1,12 +1,12 @@
 import axios from "axios";
-import {get, set} from "lodash-es";
+import {get, isEmpty, set} from "lodash-es";
 import BaseClass from "./BaseClass.js";
 
 /**
  * Базовый класс для запросов - обертка для axios с событиями и токеном авторизации
  *
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
- * 
+ *
  */
 export default class BaseProxy extends BaseClass {
     /**
@@ -64,78 +64,43 @@ export default class BaseProxy extends BaseClass {
      * */
     static EVENT_REQUEST_SUCCESS = 'requestSuccess';
 
-    /**
-     * Состояние запроса
-     * @member {Boolean}
-     * @protected
-     * */
-    _isRequesting = false;
 
     /**
-     * Является ли ошибка ошибкой валидации
-     * @member {Boolean}
+     * Token to be added for all request as authorization header
      * */
-    isValidationError = false;
-
-    /**
-     * Является ли ошибка ошибкой сервера
-     * @member {Boolean}
-     * */
-    isRemoteError = false;
-
-    /**
-     * Текст ошибки
-     * @member {?String}
-     * */
-    errorMessage;
-
-    /**
-     * Данные ответа сервера
-     * @member {?Object}
-     * */
-    responseData;
-
-    /**
-     * Сообщение об ошибке
-     * @type {String}
-     * */
-    defaultErrorMessage = 'Неизвестная ошибка связи';
-
-    /**
-     * @private
-     * */
-    static __bearerToken = null;
+    static bearerToken = null;
 
 
     /**
      * Сохраняем токен авторизации глобально
-     * @param {String} $token
+     * @param {String} token
+     * @deprecated
      * */
-    static setBearerToken($token) {
-        this.__bearerToken = $token;
+    static setBearerToken(token) {
+        this.bearerToken = token;
     }
-
 
     /**
      * Получаем сохраненный ранее токен авторизации
      * @return {String}
+     * @deprecated
      * */
     static getBearerToken() {
-        return this.__bearerToken;
+        return this.bearerToken;
     }
 
 
     /**
      * @return {Boolean}
      * */
-    static hasBearerToken() {
-        return !!this.__bearerToken;
+    static get hasBearerToken() {
+        return Boolean(this.bearerToken);
     }
 
 
     /**
-    * Общий конфиг прокси для BaseModel и BaseStore
-    * */
+     * Общий конфиг прокси для BaseModel и BaseStore
+     * */
     static globalDefaultProxyConfig() {
         return {
             class: BaseProxy
@@ -143,27 +108,81 @@ export default class BaseProxy extends BaseClass {
     }
 
 
+    constructor(config = {}) {
+        super(config);
+
+        /**
+         * Состояние запроса
+         * @member {Boolean}
+         * @protected
+         * */
+        this._isRequesting = false;
+
+        /**
+         * Является ли ошибка ошибкой валидации
+         * @member {Boolean}
+         * */
+        this.isValidationError = false;
+
+        /**
+         * Является ли ошибка ошибкой сервера
+         * @member {Boolean}
+         * */
+        this.isRemoteError = false;
+
+        /**
+         * Текст ошибки
+         * @member {?String}
+         * */
+        this.errorMessage = null;
+
+        /**
+         * Данные ответа сервера
+         * @member {?Object}
+         * */
+        this.responseData = null;
+
+        /**
+         * Сообщение об ошибке
+         * @type {String}
+         * */
+        this.defaultErrorMessage = config.defaultErrorMessage || 'Unknown network error';
+
+        this.baseUrl = config.baseUrl || '/';
+
+        this.withCredentials = config.withCredentials || false;
+
+        this.extraParams = config.extraParams || {};
+
+        this.extraHeaders = config.extraHeaders || {};
+
+        this.envelopeName = config.envelopeName || 'data';
+    }
+
     /**
      * @inheritDoc
      * @return {AxiosRequestConfig}
      *
      * */
-    axiosDefaults() {
-        return {
-            baseURL: '/',
-            // `withCredentials` indicates whether cross-site Access-Control requests
-            // should be made using credentials
-            withCredentials: false, // default
+    createAxios(config = {}) {
+        if (config instanceof axios) {
+            return config;
         }
+
+        return axios.create({
+            baseURL: this.baseUrl,
+            withCredentials: this.withCredentials,
+            ...config
+        });
     }
 
 
     /**
      * @return {AxiosInstance} Экземпляр axios
      * */
-    getAxiosInstance() {
+    get axios() {
         if (!this._axiosInstance) {
-            this._axiosInstance = axios.create(this.axiosDefaults());
+            this._axiosInstance = this.createAxios();
         }
         return this._axiosInstance;
     }
@@ -171,12 +190,11 @@ export default class BaseProxy extends BaseClass {
 
     /**
      * Метод для парсинга полезной нагрузки из ответа сервера
-     * @param {AxiosResponseSchema} $axiosResponseSchema
+     * @param {AxiosResponseSchema} axiosResponseSchema
      * @return {Object|Any} Данные
-     * @protected
      * */
-    __parseResponseData($axiosResponseSchema) {
-        return get($axiosResponseSchema, 'data', null);
+    parseResponseData(axiosResponseSchema) {
+        return get(axiosResponseSchema, this.envelopeName, null);
     }
 
 
@@ -189,44 +207,43 @@ export default class BaseProxy extends BaseClass {
      *  @property {Boolean} isRemoteError Была ли ошибка на стороне сервера
      *  @property {Boolean} isValidationError Информирует что на стороне сервера не пройдена валидация
      *
-     *  @param {AxiosErrorSchema} $axiosErrorSchema
-     *  @protected
+     *  @param {AxiosErrorSchema} axiosErrorSchema
      *  */
-    __handleResponseError($axiosErrorSchema) {
+    handleResponseError(axiosErrorSchema) {
         const defaultErrorMessage = 'Неизвестная ошибка связи';
 
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
-        if ($axiosErrorSchema.response) {
+        if (axiosErrorSchema.response) {
             this.isRemoteError = true;
-            this.isValidationError = $axiosErrorSchema.response.status === 422;
+            this.isValidationError = axiosErrorSchema.response.status === 422;
             // В ответе есть сообщение
-            this.errorMessage = get($axiosErrorSchema, 'response.data.message')
-                || get($axiosErrorSchema, 'response.message')
+            this.errorMessage = get(axiosErrorSchema, 'response.data.message')
+                || get(axiosErrorSchema, 'response.message')
                 || defaultErrorMessage;
             // Если есть тело ответа
-            this.responseData = this.__parseResponseData($axiosErrorSchema.response);
+            this.responseData = this.parseResponseData(axiosErrorSchema.response);
             return;
         }
 
         // The request was made but no response was received
         // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
         // http.ClientRequest in node.js
-        if ($axiosErrorSchema.request) {
+        if (axiosErrorSchema.request) {
             this.isRemoteError = true;
             this.errorMessage = defaultErrorMessage;
             return;
         }
 
         // Something happened in setting up the request that triggered an Error
-        this.errorMessage = $axiosErrorSchema.message || defaultErrorMessage;
+        this.errorMessage = axiosErrorSchema.message || defaultErrorMessage;
     }
 
 
     /**
      * @private
      * */
-    __dropErrors() {
+    dropErrors() {
         this.errorMessage = null;
         this.isValidationError = false;
         this.isRemoteError = false;
@@ -236,14 +253,41 @@ export default class BaseProxy extends BaseClass {
     /**
      * @return {Boolean}
      * */
-    isRequesting() {
+    get isRequesting() {
         return Boolean(this._isRequesting);
+    }
+
+    async beforeRequest(requestConfig) {
+        if (true === this.isRequesting) {
+            console.log('Proxy is busy');
+            return false;
+        }
+        this.dropErrors();
+        return true;
+    }
+
+    async afterRequest(response) {
+        return null;
+    }
+
+
+    get requestHeaders() {
+        const headers = {...this.extraHeaders};
+        if (this.constructor.hasBearerToken) {
+            set(headers, 'Authorization', `Bearer ${this.constructor.bearerToken}`);
+        }
+        return headers;
+    }
+
+
+    get requestParams() {
+        return this.extraParams;
     }
 
 
     /**
      * Общий метод выполнения запроса
-     * @param {?AxiosRequestConfig} [$extraRequestConfig] - Конфигурация для запроса axios
+     * @param {?AxiosRequestConfig} [extraConfig] - Конфигурация для запроса axios
      * @return {Promise}
      *
      * @fires BaseProxy#EVENT_REQUEST_START
@@ -251,41 +295,39 @@ export default class BaseProxy extends BaseClass {
      * @fires BaseProxy#EVENT_REQUEST_SUCCESS
      * @fires BaseProxy#EVENT_REQUEST_FAILED
      * */
-    async doRequest($extraRequestConfig = {}) {
-        if (true === this.isRequesting()) {
-            return Promise.reject('Proxy is busy...');
+    async doRequest(extraConfig = {}) {
+        const headers = this.requestHeaders;
+        const params = this.requestParams;
+        const config = {
+            ...(!isEmpty(headers) ? {headers} : {})
+            , ...(!isEmpty(params) ? {params} : {})
+            , ...extraConfig
+        };
+
+        if (false === await this.beforeRequest(config)) {
+            return false;
         }
 
         const self = this.constructor;
-        const axiosInstance = this.getAxiosInstance();
-        let requestConfig = {...$extraRequestConfig};
+        const axiosInstance = this.axios;
         let response;
 
-        // Добавляем заголовок авторизации
-        if (self.hasBearerToken()) {
-            const authToken = self.getBearerToken();
-            set(requestConfig, 'headers.Authorization', `Bearer ${authToken}`);
-        }
-
         try {
-            this.__dropErrors();
             this._isRequesting = true;
-
-            this.emit(self.EVENT_REQUEST_START, requestConfig);
-
-            response = await axiosInstance.request(requestConfig);
-            this.responseData = this.__parseResponseData(response);
+            this.emit(self.EVENT_REQUEST_START, config);
+            response = await axiosInstance.request(config);
+            this.responseData = this.parseResponseData(response);
 
             this.emit(self.EVENT_REQUEST_SUCCESS, this.responseData);
             return Promise.resolve(this.responseData);
         } catch (e) {
-            this.__handleResponseError(e);
+            this.handleResponseError(e);
             this.emit(self.EVENT_REQUEST_FAILED, e);
-
             return Promise.reject(e);
         } finally {
             this._isRequesting = false;
             this.emit(self.EVENT_REQUEST_END, response);
+            await this.afterRequest(response);
         }
     }
 }

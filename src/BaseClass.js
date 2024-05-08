@@ -104,15 +104,15 @@ export default class BaseClass {
      *
      * @see https://github.com/developit/mitt
      *
-     * @param {string|symbol|Array<string|symbol>} $event Type of event to listen for, or '*' for all events
-     * @param {Function} $handler Function to call in response to given event
+     * @param {string|symbol|Array<string|symbol>} event Type of event to listen for, or '*' for all events
+     * @param {Function} handler Function to call in response to given event
      * @return void
      * */
-    on($event, $handler) {
-        if (isArray($event)) {
-            forEach($event, ($eventItem) => this.getEmitter().on($eventItem, $handler));
+    on(event, handler) {
+        if (isArray(event)) {
+            forEach(event, (eventItem) => this.getEmitter().on(eventItem, handler));
         } else {
-            this.getEmitter().on($event, $handler);
+            this.getEmitter().on(event, handler);
         }
     }
 
@@ -123,15 +123,15 @@ export default class BaseClass {
      *
      * @see https://github.com/developit/mitt
      *
-     * @param {string|symbol} $event Type of event to listen for, or '*' for all events
-     * @param {Function} $handler Function to call in response to given event
+     * @param {string|symbol} event Type of event to listen for, or '*' for all events
+     * @param {Function} handler Function to call in response to given event
      * @return void
      * */
-    off($event, $handler) {
-        if (isArray($event)) {
-            forEach($event, ($eventItem) => this.getEmitter().off($eventItem, $handler));
+    off(event, handler) {
+        if (isArray(event)) {
+            forEach(event, (eventItem) => this.getEmitter().off(eventItem, handler));
         } else {
-            this.getEmitter().off($event, $handler);
+            this.getEmitter().off(event, handler);
         }
     }
 
@@ -141,12 +141,12 @@ export default class BaseClass {
      * Note: Manually firing '*' handlers is not supported.
      * @see https://github.com/developit/mitt
      *
-     * @param {string|symbol} $event Type of event to listen for, or '*' for all events
+     * @param {string|symbol} event Type of event to listen for, or '*' for all events
      * @param {?Any|*} [$data] Any value (object is recommended and powerful), passed to each handler
      * @return void
      * */
-    emit($event, $data = {}) {
-        this.getEmitter().emit($event, $data);
+    emit(event, $data = {}) {
+        this.getEmitter().emit(event, $data);
     }
 
 

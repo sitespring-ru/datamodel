@@ -356,7 +356,7 @@ export default class BaseStore extends BaseClass {
      * */
     get proxy() {
         if (!this._innerProxy) {
-            this._innerProxy = BaseClass.createInstance(this.defaults.proxy);
+            this._innerProxy = BaseClass.createInstance(this.getProxyConfig());
         }
         return this._innerProxy;
     }
@@ -367,7 +367,7 @@ export default class BaseStore extends BaseClass {
             return;
         }
         if (typeof config === 'object') {
-            this._innerProxy = new config({...this.getProxyConfig(), ...config});
+            this._innerProxy = BaseClass.createInstance({...this.getProxyConfig(), ...config});
             return;
         }
         // otherwise destroy proxy
@@ -382,7 +382,7 @@ export default class BaseStore extends BaseClass {
      * @return {Boolean}
      * */
     get isRequesting() {
-        return this.proxy.isRequesting();
+        return this.proxy.isRequesting;
     }
 
 
@@ -597,6 +597,20 @@ export default class BaseStore extends BaseClass {
         } catch (e) {
             return Promise.reject(e);
         }
+    }
+
+
+    /**
+     * Fetch one model of this store using store`s proxy without inner adding to store
+     * @param {Number|String} id
+     * @param {Object} extraConfig The extra configuration for model fetching
+     * */
+    async fetchOne(id, extraConfig = {}) {
+        const model = new this.model({
+            proxy: this.proxy
+        });
+        model.setAttribute(model.idProperty, id);
+        return model.fetch(extraConfig);
     }
 
 

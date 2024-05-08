@@ -692,11 +692,28 @@ export default class BaseModel extends BaseClass {
     }
 
 
+    set proxy(config) {
+        if (typeof config === 'function') {
+            this._innerProxy = new config();
+            return;
+        }
+        if (typeof config === 'object') {
+            this._innerProxy = BaseClass.createInstance({...this.getProxyConfig(), ...config});
+            return;
+        }
+        // otherwise destroy proxy
+        if (this._innerProxy && this._innerProxy.destroy) {
+            this._innerProxy.destroy();
+        }
+        this._innerProxy = null;
+    }
+
+
     /**
      * @return {Boolean}
      * */
     get isRequesting() {
-        return this.proxy.isRequesting();
+        return this.proxy.isRequesting;
     }
 
 
