@@ -525,7 +525,7 @@ export default class BaseModel extends BaseClass {
      * to use in reactive views directly
      * @return {object}
      * */
-    get () {
+    get() {
         return this.getSavedAttributes();
     }
 
@@ -873,6 +873,14 @@ export default class BaseModel extends BaseClass {
         this.isPhantom = true;
         this.emit(this.constructor.EVENT_DELETE);
         return Promise.resolve(true);
+    }
+
+
+    /**
+     * Helper for short access to saved attributes
+     * */
+    get $() {
+        return this._savedAttributes;
     }
 
 
