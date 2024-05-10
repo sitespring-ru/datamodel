@@ -164,7 +164,7 @@ export default class BaseModel extends BaseClass {
      * */
     get fields() {
         return {
-            id: this.constructor.generateId()
+            id: null
         }
     }
 
@@ -269,7 +269,7 @@ export default class BaseModel extends BaseClass {
         this._savedAttributes = {};
 
         // Задаем начальные данные
-        Object.assign(this._savedAttributes, this.fields);
+        // Object.assign(this._savedAttributes, this.fields);
 
         /**
          * Данные, которые были изменены с момента последнего коммита
@@ -299,11 +299,21 @@ export default class BaseModel extends BaseClass {
          * */
         this.__cachedRelations = {};
 
+        /**
+         * Calculate initial data
+         * @private
+         * */
+        this.__initialData = {
+            ...this.fields
+            , [this.idProperty]: this.constructor.generateId() // Auto generate id
+            , ...attributes
+        };
+        this.__innerSetAttributes(this.__initialData);
+
+        // Create magic props
         this.__createMagicProps();
-        if (!isEmpty(attributes)) {
-            this._innerSetAttributes(attributes);
-            this.commitChanges();
-        }
+
+        this.commitChanges();
     }
 
 
@@ -312,7 +322,7 @@ export default class BaseModel extends BaseClass {
      * @protected
      * */
     __createMagicProps() {
-        forEach(this.fields, (value, attrName) => {
+        forEach(this.__initialData, (value, attrName) => {
             // Уже есть пропс с именем аттрибута
             if (typeof this[attrName] !== "undefined") {
                 return;
@@ -532,9 +542,9 @@ export default class BaseModel extends BaseClass {
 
     /**
      * @return void
-     * @protected
+     * @private
      * */
-    _innerSetAttributes(attrs) {
+    __innerSetAttributes(attrs) {
         const filters = this.innerFilters;
         const safeAttrs = pick(attrs, this.safeAttributes);
         const withFilters = mapValues(safeAttrs, (value, key) => this.applyFilter(filters[key], value));
@@ -548,7 +558,7 @@ export default class BaseModel extends BaseClass {
      * */
     setAttributes(attrs) {
         const beforeAttrs = this.dirtyAttributesNames;
-        this._innerSetAttributes(attrs);
+        this.__innerSetAttributes(attrs);
         const afterAttrs = this.dirtyAttributesNames;
         const diff = difference(afterAttrs, beforeAttrs);
         if (diff.length > 0) {
@@ -571,7 +581,22 @@ export default class BaseModel extends BaseClass {
      * @param {?Array} [names] Имена аттрибутов или все
      * */
     resetAttributes(names = []) {
-        this._dirtyAttributes = {};
+        if (!isEmpty(names)) {
+            const attrs = pick(names, this.__initialData);
+            this.setAttributes(attrs);
+        } else {
+            this.setAttributes(this.__initialData);
+        }
+    }
+
+
+    /**
+     * Reset model to initial state
+     * By default reset all attributes to initial data and commit state
+     * */
+    reset() {
+        this.resetAttributes();
+        this.commitChanges();
     }
 
 

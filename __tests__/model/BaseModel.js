@@ -63,15 +63,25 @@ class TestModel extends BaseModel {
 
 describe('Работа с аттрибутами', () => {
     test('Аттрибуты через конструктор', () => {
-        const $model = new TestModel({age: '16'});
-        expect($model.getAttributes()).toMatchObject({
+        let model = new TestModel({age: '16'});
+        const attrs = model.attributes;
+        expect(attrs).toMatchObject({
             id: 'TestModel-1',
             age: 16,
-            dob: null
+            dob: null,
+            name: ''
         });
-        expect($model.isPhantom).toBeTruthy();
-        expect($model.isDirty).toBeFalsy();
-        expect($model.getAttribute('created_at')).toBeInstanceOf(Date);
+        expect(model.isPhantom).toBeTruthy();
+        expect(model.isDirty).toBeFalsy();
+        expect(model.getAttribute('created_at')).toBeInstanceOf(Date);
+
+        model = new TestModel({name: 'second'});
+        expect(model.$).toMatchObject({
+            id: 'TestModel-2',
+            age: null,
+            dob: null,
+            name: 'second'
+        });
     });
 
     test('Неизвестный аттрибут', () => {
