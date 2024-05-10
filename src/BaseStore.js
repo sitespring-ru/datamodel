@@ -451,7 +451,10 @@ export default class BaseStore extends BaseClass {
         const {isPhantom} = options;
         // Был передан объект аттрибутов
         if (!(modelOrAttrs instanceof this.model)) {
-            model = new this.model(modelOrAttrs, this.modelExtraConfig);
+            model = new this.model(modelOrAttrs, {
+                proxy: this.proxy.constructor, // Model in store has the same proxy type
+                ...this.modelExtraConfig
+            });
         } else {
             model = modelOrAttrs;
         }
