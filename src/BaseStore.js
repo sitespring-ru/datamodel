@@ -154,7 +154,7 @@ export default class BaseStore extends BaseClass {
         this.pageSize = config.pageSize ?? 20;
     }
 
-    get model(){
+    get model() {
         return this.initialConfig.model || BaseModel;
     }
 
@@ -205,10 +205,8 @@ export default class BaseStore extends BaseClass {
      * Конфигурация создаваемой Модели
      * @return {Object}
      * */
-    getModelConfig() {
-        return {
-            class: this.model
-        }
+    get modelExtraConfig() {
+        return {}
     };
 
     /**
@@ -453,8 +451,7 @@ export default class BaseStore extends BaseClass {
         const {isPhantom} = options;
         // Был передан объект аттрибутов
         if (!(modelOrAttrs instanceof this.model)) {
-            model = BaseClass.createInstance(this.getModelConfig());
-            model.setAttributes(modelOrAttrs);
+            model = new this.model(modelOrAttrs, this.modelExtraConfig);
         } else {
             model = modelOrAttrs;
         }
@@ -723,7 +720,7 @@ export default class BaseStore extends BaseClass {
      * Статический геттер для совместимости
      * @return {boolean}
      * */
-    hasFilters() {
+    get hasFilters() {
         return this.filtersCount > 0;
     }
 
@@ -868,7 +865,7 @@ export default class BaseStore extends BaseClass {
      * */
     _serializeFiltersToRequestParams() {
         let filters = {};
-        if (this.hasFilters()) {
+        if (this.hasFilters) {
             Object.assign(filters, {
                 filters: values(this._innerFilters)
             })

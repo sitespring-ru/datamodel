@@ -38,28 +38,28 @@ export default class BaseModel extends BaseClass {
     /**
      * Событие смены значения аттрибута
      * @event BaseModel#EVENT_REQUEST_START
-     * @param {AttributesMap} $changed Объект измененных аттрибутов
+     * @param {AttributesMap} changed Объект измененных аттрибутов
      * */
     static EVENT_ATTRIBUTES_CHANGE = 'attributesChanged';
 
     /**
      * Событие получения данных с сервера
      * @event BaseModel#EVENT_FETCH
-     * @param {AttributesMap} $data Объект данных
+     * @param {AttributesMap} data Объект данных
      * */
     static EVENT_FETCH = 'fetch';
 
     /**
      * Событие создание новой модели на сервере
      * @event BaseModel#EVENT_CREATE
-     * @param {AttributesMap} $data Объект полученных аттрибутов
+     * @param {AttributesMap} data Объект полученных аттрибутов
      * * */
     static EVENT_CREATE = 'create';
 
     /**
      * Событие сохранения данных на сервере
      * @event BaseModel#EVENT_SAVE
-     * @param {AttributesMap} $changed Объект сохраненных аттрибутов
+     * @param {AttributesMap} changed Объект сохраненных аттрибутов
      * */
     static EVENT_SAVE = 'save';
 
@@ -72,7 +72,7 @@ export default class BaseModel extends BaseClass {
     /**
      * Событие изменения данных об ошибках валидации
      * @event BaseModel#EVENT_ERRORS_CHANGE
-     * @param {Object} $data Текущий стек ошибок
+     * @param {Object} data Текущий стек ошибок
      * */
     static EVENT_ERRORS_CHANGE = 'errorschange';
 
@@ -116,11 +116,11 @@ export default class BaseModel extends BaseClass {
      * */
     static filtersMap() {
         return {
-            string: ($rawValue) => ($rawValue + '').trim(),
-            int: ($rawValue) => $rawValue && Number.parseInt($rawValue) || null,
-            float: ($rawValue) => $rawValue && Number.parseFloat($rawValue) || null,
-            date: ($rawValue) => $rawValue !== null ? new Date($rawValue) : null,
-            submitDate: ($rawValue, $format = 'YYYY-MM-DD') => $rawValue && dayjs($rawValue).format($format) || null,
+            string: (rawValue) => (rawValue + '').trim(),
+            int: (rawValue) => rawValue && Number.parseInt(rawValue) || null,
+            float: (rawValue) => rawValue && Number.parseFloat(rawValue) || null,
+            date: (rawValue) => rawValue !== null ? new Date(rawValue) : null,
+            submitDate: (rawValue, format = 'YYYY-MM-DD') => rawValue && dayjs(rawValue).format(format) || null,
             submitTime: ['submitDate', 'HH:mm:ss'],
             submitDateTime: ['submitDate', 'YYYY-MM-DD HH:mm:ss'],
         }
@@ -132,12 +132,12 @@ export default class BaseModel extends BaseClass {
      * @return {Object.<String,String>}
      * */
     get urls() {
-        const $id = this.getId();
+        const id = this.getId();
         return {
-            fetch: `${this.entityName}/${$id}`,
+            fetch: `${this.entityName}/${id}`,
             create: `${this.entityName}`,
-            save: `${this.entityName}/${$id}`,
-            delete: `${this.entityName}/${$id}`,
+            save: `${this.entityName}/${id}`,
+            delete: `${this.entityName}/${id}`,
             ...this.initialConfig.urls
         }
     }
@@ -162,7 +162,7 @@ export default class BaseModel extends BaseClass {
      * Конфигурация аттрибутов Модели c дефолтными значениями
      * @return {AttributesMap}
      * */
-    fields() {
+    get fields() {
         return {
             id: this.constructor.generateId()
         }
@@ -173,7 +173,7 @@ export default class BaseModel extends BaseClass {
      * Массив полей, которые могут быть изменены с помощью метода setAttributes
      * */
     get safeAttributes() {
-        return keys(this.fields());
+        return keys(this.fields);
     }
 
 
@@ -182,7 +182,7 @@ export default class BaseModel extends BaseClass {
      * По умолчанию используется библиотека https://validatejs.org/
      * @see https://validatejs.org/
      * */
-    rules() {
+    get rules() {
         return {
             id: {numericality: true}
         }
@@ -226,28 +226,28 @@ export default class BaseModel extends BaseClass {
 
     /**
      * Применяем фильтр для аттрибута
-     * @param {AttributeFilter|null} $filterDef
-     * @param {*} $rawValue
-     * @param {?Array} $args Дополнительные аргументы для передачи в метод фильтра
+     * @param {AttributeFilter|null} filterDef
+     * @param {*} rawValue
+     * @param {?Array} args Дополнительные аргументы для передачи в метод фильтра
      * @return {*} Значение после обработки фильтра
      * */
-    applyFilter($filterDef, $rawValue, $args = []) {
-        if (!$filterDef) {
-            return $rawValue;
+    applyFilter(filterDef, rawValue, args = []) {
+        if (!filterDef) {
+            return rawValue;
         }
         // Кейс когда передано название фильтра из карты предопределенных фильтров
-        if (isString($filterDef)) {
-            return this.applyFilter(this.constructor.filtersMap()[$filterDef], $rawValue, $args);
+        if (isString(filterDef)) {
+            return this.applyFilter(this.constructor.filtersMap()[filterDef], rawValue, args);
         }
         // Кейс когда передан метод напрямую
-        if (isFunction($filterDef)) {
-            return $filterDef.apply(this, [$rawValue, ...$args]);
+        if (isFunction(filterDef)) {
+            return filterDef.apply(this, [rawValue, ...args]);
         }
         // Кейс когда передан массив, первый элемент которого название фильтра и доп. аргументы
-        if (isArray($filterDef)) {
-            return this.applyFilter($filterDef[0], $rawValue, $filterDef.slice(1));
+        if (isArray(filterDef)) {
+            return this.applyFilter(filterDef[0], rawValue, filterDef.slice(1));
         }
-        throw new Error(`Invalid filter type ${name}`);
+        throw new Error(`Invalid filter type {name}`);
     }
 
 
@@ -269,7 +269,7 @@ export default class BaseModel extends BaseClass {
         this._savedAttributes = {};
 
         // Задаем начальные данные
-        Object.assign(this._savedAttributes, this.fields());
+        Object.assign(this._savedAttributes, this.fields);
 
         /**
          * Данные, которые были изменены с момента последнего коммита
@@ -312,7 +312,7 @@ export default class BaseModel extends BaseClass {
      * @protected
      * */
     __createMagicProps() {
-        forEach(this.fields(), (value, attrName) => {
+        forEach(this.fields, (value, attrName) => {
             // Уже есть пропс с именем аттрибута
             if (typeof this[attrName] !== "undefined") {
                 return;
@@ -393,7 +393,7 @@ export default class BaseModel extends BaseClass {
             return;
         }
 
-        throw new Error(`Invalid type ${type}`);
+        throw new Error(`Invalid type {type}`);
     }
 
 
@@ -462,61 +462,61 @@ export default class BaseModel extends BaseClass {
 
     /**
      * Преобразование данных для отправки на сервер
-     * @param {?Array} [$names] Список аттрибутов или все
+     * @param {?Array} [names] Список аттрибутов или все
      * @return {Object.<String, *>}
      * */
-    getSubmitValues($names = null) {
-        const $attrs = this.getAttributes($names);
-        const $filters = this.submitFilters;
-        return mapValues($attrs, ($value, $attr) => this.applyFilter($filters[$attr], $value));
+    getSubmitValues(names = null) {
+        const attrs = this.getAttributes(names);
+        const filters = this.submitFilters;
+        return mapValues(attrs, (value, attr) => this.applyFilter(filters[attr], value));
     }
 
 
     /**
      * Сохраненные данные
-     * @param {?Array} [$names] Имена нужных аттрибутов или будут возвращены все
+     * @param {?Array} [names] Имена нужных аттрибутов или будут возвращены все
      * @return {object}
      * */
-    getSavedAttributes($names) {
-        return $names ? pick(this._savedAttributes, $names) : this._savedAttributes;
+    getSavedAttributes(names) {
+        return names ? pick(this._savedAttributes, names) : this._savedAttributes;
     }
 
 
     /**
-     * @param {string} $name Имя аттрибута
+     * @param {string} name Имя аттрибута
      * @return {*} Значение аттрибута
      * */
-    getSavedAttribute($name) {
-        if (!has(this._savedAttributes, $name)) {
-            throw new Error(`Unknown attribute name "${$name}"`);
+    getSavedAttribute(name) {
+        if (!has(this._savedAttributes, name)) {
+            throw new Error(`Unknown attribute name "{name}"`);
         }
-        return this._savedAttributes[$name];
+        return this._savedAttributes[name];
     }
 
 
     /**
-     * @param {string} $name Имя аттрибута
-     * @param {?Boolean} [$isDirty] По умолчанию true
+     * @param {string} name Имя аттрибута
+     * @param {?Boolean} [isDirty] По умолчанию true
      * @return {*} Значение аттрибута
      * @alias get
      * */
-    getAttribute($name, $isDirty = true) {
-        const $attrs = $isDirty ? {...this._savedAttributes, ...this._dirtyAttributes} : this._savedAttributes;
-        if (!has($attrs, $name)) {
-            throw new Error(`Unknown attribute name "${$name}"`);
+    getAttribute(name, isDirty = true) {
+        const attrs = isDirty ? {...this._savedAttributes, ...this._dirtyAttributes} : this._savedAttributes;
+        if (!has(attrs, name)) {
+            throw new Error(`Unknown attribute name "${name}"`);
         }
-        return $attrs[$name];
+        return attrs[name];
     }
 
 
     /**
-     * @param {?Array} [$names] Имена нужных аттрибутов или будут возвращены все
-     * @param {?Boolean} [$isDirty] По умолчанию true
+     * @param {?Array} [names] Имена нужных аттрибутов или будут возвращены все
+     * @param {?Boolean} [isDirty] По умолчанию true
      * @return {object} Текущие аттрибуты
      * */
-    getAttributes($names = null, $isDirty = true) {
-        const $attrs = $isDirty ? {...this._savedAttributes, ...this._dirtyAttributes} : this._savedAttributes;
-        return isArray($names) ? pick($attrs, $names) : $attrs;
+    getAttributes(names = null, isDirty = true) {
+        const attrs = isDirty ? {...this._savedAttributes, ...this._dirtyAttributes} : this._savedAttributes;
+        return isArray(names) ? pick(attrs, names) : attrs;
     }
 
 
@@ -525,7 +525,7 @@ export default class BaseModel extends BaseClass {
      * to use in reactive views directly
      * @return {object}
      * */
-    get $() {
+    get () {
         return this.getSavedAttributes();
     }
 
@@ -534,9 +534,9 @@ export default class BaseModel extends BaseClass {
      * @return void
      * @protected
      * */
-    _innerSetAttributes($attrs) {
+    _innerSetAttributes(attrs) {
         const filters = this.innerFilters;
-        const safeAttrs = pick($attrs, this.safeAttributes);
+        const safeAttrs = pick(attrs, this.safeAttributes);
         const withFilters = mapValues(safeAttrs, (value, key) => this.applyFilter(filters[key], value));
         Object.assign(this._dirtyAttributes, withFilters);
     }
@@ -544,11 +544,11 @@ export default class BaseModel extends BaseClass {
 
     /**
      * Новые значения аттрибутов
-     * @param {AttributesMap} $attrs
+     * @param {AttributesMap} attrs
      * */
-    setAttributes($attrs) {
+    setAttributes(attrs) {
         const beforeAttrs = this.dirtyAttributesNames;
-        this._innerSetAttributes($attrs);
+        this._innerSetAttributes(attrs);
         const afterAttrs = this.dirtyAttributesNames;
         const diff = difference(afterAttrs, beforeAttrs);
         if (diff.length > 0) {
@@ -568,9 +568,9 @@ export default class BaseModel extends BaseClass {
 
     /**
      * Сброс данных к первоначальным (сохраненным) значениям
-     * @param {?Array} [$names] Имена аттрибутов или все
+     * @param {?Array} [names] Имена аттрибутов или все
      * */
-    resetAttributes($names = []) {
+    resetAttributes(names = []) {
         this._dirtyAttributes = {};
     }
 
@@ -578,23 +578,23 @@ export default class BaseModel extends BaseClass {
     /**
      * Валидация Модели
      * Ошибки можно прочесть из BaseModel.getErrors()
-     * @param {?Array} $names Аттрибуты для валидации, или будут использованы все
-     * @param {?Object} $extraConfig Дополнительная конфигурация для Валидатора
+     * @param {?Array} names Аттрибуты для валидации, или будут использованы все
+     * @param {?Object} extraConfig Дополнительная конфигурация для Валидатора
      * @return {boolean} Результат валидации
      * */
-    validate($names = null, $extraConfig = null) {
+    validate(names = null, extraConfig = null) {
         this.dropErrors();
 
-        const $rules = this.rules();
-        const $constraintsToValidate = isArray($names) ? pick($rules, $names) : $rules;
+        const rules = this.rules;
+        const constraintsToValidate = isArray(names) ? pick(rules, names) : rules;
         // Поскольку validate.js не поддерживает создание экземпляра
         // Возможно передать дополнительные опции при валидации, которые мы берем из конфигурации Модели
-        const $options = {...this.validationConfig, ...$extraConfig};
-        const $attrs = this.getAttributes($names);
-        const $errors = validate($attrs, $constraintsToValidate, $options);
+        const options = {...this.validationConfig, ...extraConfig};
+        const attrs = this.getAttributes(names);
+        const errors = validate(attrs, constraintsToValidate, options);
 
-        if (!isEmpty($errors)) {
-            this.setErrors($errors);
+        if (!isEmpty(errors)) {
+            this.setErrors(errors);
         }
         return !this.hasErrors;
     }
@@ -729,13 +729,13 @@ export default class BaseModel extends BaseClass {
 
     /**
      * Сериализуем Модель в строку
-     * @param {Array} $names Имена нужных аттрибутов или будут возвращены все
+     * @param {Array} names Имена нужных аттрибутов или будут возвращены все
      * @return {string} JSON строка с аттрибутами
      * @throws Error В случае неудачи
      * */
-    serialize($names = []) {
+    serialize(names = []) {
         try {
-            return JSON.stringify(this.getSubmitValues($names));
+            return JSON.stringify(this.getSubmitValues(names));
         } catch (e) {
             throw new Error('Failed serialize model: ' + e.message);
         }

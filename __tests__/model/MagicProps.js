@@ -17,9 +17,9 @@ jest.mock('axios');
 class TestModel extends BaseModel {
     entityName = 'test-model';
 
-    fields() {
+    get fields() {
         return {
-            ...super.fields(),
+            ...super.fields,
             created_at: new Date(),
             dob: null,
             age: null,

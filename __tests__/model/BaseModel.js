@@ -15,9 +15,9 @@ class TestModel extends BaseModel {
         return 'test-model';
     }
 
-    fields() {
+    get fields() {
         return {
-            ...super.fields(),
+            ...super.fields,
             created_at: new Date(),
             dob: null,
             age: null,
@@ -41,7 +41,7 @@ class TestModel extends BaseModel {
         }
     }
 
-    rules() {
+    get rules() {
         return {
             age: {
                 numericality: {

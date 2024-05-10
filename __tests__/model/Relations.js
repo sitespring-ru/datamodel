@@ -17,9 +17,9 @@ jest.mock('axios');
 class Author extends BaseModel {
     entityName = 'author';
 
-    fields() {
+    get fields() {
         return {
-            ...super.fields(),
+            ...super.fields,
             name: null,
             contributors: []
         };
@@ -39,9 +39,9 @@ class Author extends BaseModel {
 class Article extends BaseModel {
     entityName = 'article';
 
-    fields() {
+    get fields() {
         return {
-            ...super.fields(),
+            ...super.fields,
             title: null
         };
     }
@@ -55,9 +55,9 @@ class Article extends BaseModel {
 class Book extends BaseModel {
     entityName = 'book';
 
-    fields() {
+    get fields() {
         return {
-            ...super.fields(),
+            ...super.fields,
             title: 'bar',
             articles: [],
             author: null,

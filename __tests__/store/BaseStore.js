@@ -15,9 +15,9 @@ jest.mock('axios');
 // axios.create.mockReturnThis();
 
 class PersonTestModel extends BaseModel {
-    fields() {
+    get fields() {
         return {
-            ...super.fields(),
+            ...super.fields,
             name: null,
             age: null
         };
@@ -180,7 +180,7 @@ describe('Работа с фильтрами', () => {
         expect($store.getFilters()).toEqual({
             byAge: {property: 'age', operator: "=", value: true}
         });
-        expect($store.hasFilters()).toBeTruthy();
+        expect($store.hasFilters).toBeTruthy();
         expect($store.filtersCount).toEqual(1);
 
         // Напрямую через setter как в куонструторе
@@ -188,14 +188,14 @@ describe('Работа с фильтрами', () => {
             .toThrowError('Filter`s property must be set');
 
         $store.dropAllFilters();
-        expect($store.hasFilters()).toBeFalsy();
+        expect($store.hasFilters).toBeFalsy();
         expect($store.filtersCount).toEqual(0);
     });
 
     test('Добавление через метод', (done) => {
         let $store = new PersonsTestStore({hasEmitter: true});
         $store.on($store.constructor.EVENT_FILTERS_CHANGE, ({newFilters}) => {
-            expect($store.hasFilters()).toBeTruthy();
+            expect($store.hasFilters).toBeTruthy();
             expect($store.filtersCount).toEqual(1);
             expect(newFilters).toEqual({
                 id1: {property: 'age', operator: "=", value: true}
