@@ -1,6 +1,6 @@
 /**
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
- * 
+ *
  * @licence Proprietary
  */
 import BaseClass from "../../src/BaseClass";
@@ -30,7 +30,7 @@ test('Конфигурация через статический хелпер', 
 test('Попытка задать несуществующее свойство', () => {
     let $baseClass;
     $baseClass = new BaseTestClass({'no': 'baz'});
-    expect($baseClass.no).toEqual('baz');
+    expect($baseClass.no).toBeUndefined();
     expect(() => BaseTestClass.createInstance({'class': BaseTestClass, 'no': 'baz'})).toThrowError('Unknown property "no"');
 });
 
@@ -41,7 +41,9 @@ test('Строковое представление', () => {
 });
 
 test('Деструктуризация', () => {
-    const $baseClass = new BaseClass();
+    const $baseClass = new BaseClass({
+        hasEmitter: true
+    });
     // force create emitter instance
     $baseClass.on('foo', () => {
         throw new Error('This shouldn`t be called');

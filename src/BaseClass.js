@@ -1,4 +1,4 @@
-import {forEach, isArray, isEmpty, omit, set, defaults} from "lodash-es";
+import {forEach, isArray, isEmpty, omit, set} from "lodash-es";
 import mitt from "mitt";
 
 /**
@@ -22,26 +22,12 @@ export default class BaseClass {
 
 
     /**
-     * @param {?Object} [$config] Объект конфигурации Конструктора
+     * @param {?Object} [config] Объект конфигурации Конструктора
      * */
-    constructor($config = {}) {
-        defaults($config, this.defaults);
-        if (!isEmpty($config)) {
-            Object.assign(this, $config)
-        }
-        this.init();
+    constructor(config = {}) {
+        this.initialConfig = config || {};
     }
 
-
-    /**
-     * Хук инициализации Класса
-     * */
-    init() {
-    }
-
-    get defaults() {
-        return {};
-    }
 
     static configure(instance, props) {
         if (!isEmpty(props)) {
@@ -86,11 +72,21 @@ export default class BaseClass {
 
 
     /**
+     * Should class support emitting events
+     * false by default for
+     * @return {Boolean}
+     * */
+    get hasEmitter() {
+        return Boolean(this.initialConfig.hasEmitter);
+    }
+
+
+    /**
      * Создаем экземпляр Emitter`a
      * Таким образом экземпляр Emitter-а создается при первом вызове метода, а не при создании класса
      * @return {Emitter}
      * */
-    getEmitter() {
+    get emitter() {
         if (!this.__emitterInstance) {
             this.__emitterInstance = new mitt();
         }
@@ -109,10 +105,13 @@ export default class BaseClass {
      * @return void
      * */
     on(event, handler) {
+        if (!this.hasEmitter) {
+            return;
+        }
         if (isArray(event)) {
-            forEach(event, (eventItem) => this.getEmitter().on(eventItem, handler));
+            forEach(event, (eventItem) => this.emitter.on(eventItem, handler));
         } else {
-            this.getEmitter().on(event, handler);
+            this.emitter.on(event, handler);
         }
     }
 
@@ -128,10 +127,13 @@ export default class BaseClass {
      * @return void
      * */
     off(event, handler) {
+        if (!this.hasEmitter) {
+            return;
+        }
         if (isArray(event)) {
-            forEach(event, (eventItem) => this.getEmitter().off(eventItem, handler));
+            forEach(event, (eventItem) => this.emitter.off(eventItem, handler));
         } else {
-            this.getEmitter().off(event, handler);
+            this.emitter.off(event, handler);
         }
     }
 
@@ -146,7 +148,10 @@ export default class BaseClass {
      * @return void
      * */
     emit(event, $data = {}) {
-        this.getEmitter().emit(event, $data);
+        if (!this.hasEmitter) {
+            return;
+        }
+        this.emitter.emit(event, $data);
     }
 
 

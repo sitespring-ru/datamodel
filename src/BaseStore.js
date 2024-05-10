@@ -1,4 +1,4 @@
-import {each, find, get, isEmpty, isEqual, isFunction, isMatch, map, merge, remove, size, sumBy, values} from "lodash-es";
+import {each, find, get, isEmpty, isEqual, isFunction, isMatch, map, merge, remove, size, sumBy, unset, values} from "lodash-es";
 import BaseClass from "./BaseClass.js";
 import BaseModel from "./BaseModel.js";
 import BaseProxy from "./BaseProxy.js";
@@ -124,11 +124,6 @@ export default class BaseStore extends BaseClass {
          * */
         this._isFetched = false;
 
-        /**
-         * Состояние ожидания Прокси
-         * @type {Boolean}
-         */
-        this._isRequesting = false;
 
         /**
          * @type {?PaginationDefinition}
@@ -155,13 +150,12 @@ export default class BaseStore extends BaseClass {
         if (config.isPaginated) {
             this.isPaginated = Boolean(config.isPaginated);
         }
+
         this.pageSize = config.pageSize ?? 20;
+    }
 
-        this.model = config.model ?? BaseModel;
-
-        this.proxy = config.proxy;
-
-        this.fetchUrl = config.fetchUrl ?? null;
+    get model(){
+        return this.initialConfig.model || BaseModel;
     }
 
 
@@ -341,12 +335,13 @@ export default class BaseStore extends BaseClass {
         return !!this.isPaginated;
     }
 
+
     /**
-     * Конфигурация для Прокси
+     * Proxy configuration
      * @return {Object}
      * */
-    getProxyConfig() {
-        return BaseProxy.globalDefaultProxyConfig();
+    get proxyConfig() {
+        return this.initialConfig.proxy || BaseProxy;
     };
 
 
@@ -355,26 +350,26 @@ export default class BaseStore extends BaseClass {
      * @return {BaseProxy} Созданный экземпляр Прокси
      * */
     get proxy() {
-        if (!this._innerProxy) {
-            this._innerProxy = BaseClass.createInstance(this.getProxyConfig());
+        if (!this.__innerProxy) {
+            // Берем конфигурацию Прокси переданную в конструктор
+            this.__innerProxy = this.configureProxy(this.proxyConfig);
         }
-        return this._innerProxy;
+        return this.__innerProxy;
     }
 
-    set proxy(config) {
+
+    configureProxy(config) {
+        if (config instanceof BaseProxy) {
+            return config;
+        }
         if (typeof config === 'function') {
-            this._innerProxy = new config();
-            return;
+            return new config();
         }
         if (typeof config === 'object') {
-            this._innerProxy = BaseClass.createInstance({...this.getProxyConfig(), ...config});
-            return;
+            const ct = config.type || BaseProxy;
+            unset(config, 'type');
+            return new ct(config);
         }
-        // otherwise destroy proxy
-        if (this._innerProxy && this._innerProxy.destroy) {
-            this._innerProxy.destroy();
-        }
-        this._innerProxy = null;
     }
 
 
@@ -559,8 +554,8 @@ export default class BaseStore extends BaseClass {
 
 
     buildFetchUrl() {
-        if (this.fetchUrl) {
-            return this.fetchUrl;
+        if (this.initialConfig.fetchUrl) {
+            return this.initialConfig.fetchUrl;
         }
         return '/' + (new this.model()).entityName;
     }
@@ -946,13 +941,10 @@ export default class BaseStore extends BaseClass {
     async doRequest(config) {
         const proxy = this.proxy;
         try {
-            this._isRequesting = true;
             const responseData = (await proxy.doRequest(config));
             return Promise.resolve(responseData);
         } catch (e) {
             return Promise.reject(e);
-        } finally {
-            this._isRequesting = false;
         }
     }
 

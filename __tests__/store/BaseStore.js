@@ -25,11 +25,8 @@ class PersonTestModel extends BaseModel {
 }
 
 class PersonsTestStore extends BaseStore {
-    get defaults() {
-        return {
-            ...super.defaults,
-            model: PersonTestModel
-        }
+    get model() {
+        return PersonTestModel;
     }
 }
 
@@ -37,7 +34,7 @@ class PersonsTestStore extends BaseStore {
 describe('Работа с моделями', () => {
     test('Добавление', (done) => {
         const $model = new PersonTestModel({name: 'xoxa', age: 37});
-        const $store = new PersonsTestStore();
+        const $store = new PersonsTestStore({hasEmitter: true});
         $store.loadModels([{name: 'foo'}, {name: 'xoxa', age: 37}, {name: 'xoxa', age: 37}]);
 
         $store.on(PersonsTestStore.EVENT_MODELS_CHANGE, (modelsChanged) => {
@@ -121,7 +118,7 @@ describe('Работа с моделями', () => {
 
     test('Загрузка с сервера', (done) => {
         /** @type {PersonsTestStore} $store */
-        const $store = new PersonsTestStore({fetchUrl: 'https://api.com'});
+        const $store = new PersonsTestStore({fetchUrl: 'https://api.com', hasEmitter: true});
         const mockModels = [
             {id: 1, name: 'foo'},
             {id: 2, name: 'xoxa1', age: 37}
@@ -154,7 +151,7 @@ describe('Работа с моделями', () => {
 
     test('Перезагрузка', (done) => {
         /** @type {PersonsTestStore} $store */
-        const $store = new PersonsTestStore({fetchUrl: 'https://api.com'});
+        const $store = new PersonsTestStore({fetchUrl: 'https://api.com', hasEmitter: true});
         const mockModels = [
             {id: 1, name: 'foo'},
             {id: 2, name: 'xoxa1', age: 37}
@@ -196,7 +193,7 @@ describe('Работа с фильтрами', () => {
     });
 
     test('Добавление через метод', (done) => {
-        let $store = new PersonsTestStore();
+        let $store = new PersonsTestStore({hasEmitter: true});
         $store.on($store.constructor.EVENT_FILTERS_CHANGE, ({newFilters}) => {
             expect($store.hasFilters()).toBeTruthy();
             expect($store.filtersCount).toEqual(1);
@@ -210,7 +207,7 @@ describe('Работа с фильтрами', () => {
 
 
     test('Удаление через метод', (done) => {
-        let $store = new PersonsTestStore();
+        let $store = new PersonsTestStore({hasEmitter: true});
         $store.addFilter('byAge', {property: 'age'});
         $store.on($store.constructor.EVENT_FILTERS_CHANGE, ({newFilters, oldFilters}) => {
             expect($store.filtersCount).toEqual(0);
@@ -295,7 +292,7 @@ describe('Работа с сортировкой', () => {
     });
 
     test('Добавление метод', (done) => {
-        let $store = new PersonsTestStore();
+        let $store = new PersonsTestStore({hasEmitter: true});
         $store.on($store.constructor.EVENT_SORTERS_CHANGE, ({newSorters, oldSorters}) => {
             expect($store.sortersCount).toEqual(1);
             expect(newSorters).toEqual($store.getSorters());
@@ -306,7 +303,7 @@ describe('Работа с сортировкой', () => {
     });
 
     test('Удаление через метод', (done) => {
-        let $store = new PersonsTestStore();
+        let $store = new PersonsTestStore({hasEmitter: true});
         $store.addSorter('byAge', {property: 'age'});
         $store.on($store.constructor.EVENT_SORTERS_CHANGE, ({newSorters, oldSorters}) => {
             expect($store.sortersCount).toEqual(0);
@@ -395,7 +392,7 @@ describe('Пагинация', () => {
 
     test('Изменение размера страницы', (done) => {
         /** @type {PersonsTestStore} */
-        const $store = new PersonsTestStore({isPaginated: true, pageSize: 2});
+        const $store = new PersonsTestStore({isPaginated: true, pageSize: 2, hasEmitter: true});
         $store.loadModels(mockModels);
         expect($store.pageNumber).toEqual(3);
 

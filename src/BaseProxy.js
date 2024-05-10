@@ -114,9 +114,9 @@ export default class BaseProxy extends BaseClass {
         /**
          * Состояние запроса
          * @member {Boolean}
-         * @protected
+         * @public
          * */
-        this._isRequesting = false;
+        this.isRequesting = false;
 
         /**
          * Является ли ошибка ошибкой валидации
@@ -250,13 +250,6 @@ export default class BaseProxy extends BaseClass {
     }
 
 
-    /**
-     * @return {Boolean}
-     * */
-    get isRequesting() {
-        return Boolean(this._isRequesting);
-    }
-
     async beforeRequest(requestConfig) {
         if (true === this.isRequesting) {
             console.log('Proxy is busy');
@@ -313,7 +306,7 @@ export default class BaseProxy extends BaseClass {
         let response;
 
         try {
-            this._isRequesting = true;
+            this.isRequesting = true;
             this.emit(self.EVENT_REQUEST_START, config);
             response = await axiosInstance.request(config);
             this.responseData = this.parseResponseData(response);
@@ -325,7 +318,7 @@ export default class BaseProxy extends BaseClass {
             this.emit(self.EVENT_REQUEST_FAILED, e);
             return Promise.reject(e);
         } finally {
-            this._isRequesting = false;
+            this.isRequesting = false;
             this.emit(self.EVENT_REQUEST_END, response);
             await this.afterRequest(response);
         }

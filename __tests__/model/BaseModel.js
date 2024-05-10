@@ -11,7 +11,9 @@ import {jest} from '@jest/globals'
 jest.mock('axios');
 
 class TestModel extends BaseModel {
-    entityName = 'test-model';
+    get entityName() {
+        return 'test-model';
+    }
 
     fields() {
         return {
@@ -23,7 +25,7 @@ class TestModel extends BaseModel {
         };
     }
 
-    innerFilters() {
+    get innerFilters() {
         return {
             created_at: 'date',
             dob: 'date',
@@ -32,7 +34,7 @@ class TestModel extends BaseModel {
         }
     }
 
-    submitFilters() {
+    get submitFilters() {
         return {
             created_at: 'submitDateTime',
             dob: 'submitDate'
@@ -79,7 +81,7 @@ describe('Работа с аттрибутами', () => {
     });
 
     test('Изменение данных', (done) => {
-        const $model = new TestModel({age: '22'});
+        const $model = new TestModel({age: '22'}, {hasEmitter: true});
         const $newData = {name: '  should be trimmed ', age: '22', dob: '2000-10-01'};
         const $expData = {name: 'should be trimmed', dob: new Date('2000-10-01')};
 
@@ -214,7 +216,7 @@ describe('Валидация на стороне сервера', () => {
 
 describe('CRUD rest api', () => {
     test('Fetch', (done) => {
-        const $model = new TestModel({id: 55});
+        const $model = new TestModel({id: 55}, {hasEmitter: true});
         expect($model.isPhantom).toBeTruthy();
 
         $model.proxy.doRequest = jest.fn().mockResolvedValue({dob: '2000-02-03', name: 'Mike'});
@@ -239,7 +241,7 @@ describe('CRUD rest api', () => {
     });
 
     test('Create', (done) => {
-        const $model = new TestModel({created_at: '2022-03-11T01:33:07', id: 55});
+        const $model = new TestModel({created_at: '2022-03-11T01:33:07', id: 55}, {hasEmitter: true});
         expect($model.isPhantom).toBeTruthy();
 
         $model.proxy.doRequest = jest.fn().mockResolvedValue({dob: '2000-02-03', name: 'Mike', id: 55});
@@ -266,7 +268,7 @@ describe('CRUD rest api', () => {
     });
 
     test('Update', (done) => {
-        const $model = new TestModel({created_at: '2022-03-11T01:33:07', name: 'Xoxa', id: 18});
+        const $model = new TestModel({created_at: '2022-03-11T01:33:07', name: 'Xoxa', id: 18}, {hasEmitter: true});
         expect($model.isDirty).toBeFalsy();
 
         $model.proxy.doRequest = jest.fn().mockResolvedValue({name: 'Mike'});
@@ -296,7 +298,7 @@ describe('CRUD rest api', () => {
 
 
     test('Delete', (done) => {
-        const $model = new TestModel({id: 16});
+        const $model = new TestModel({id: 16}, {hasEmitter: true});
         $model.proxy.doRequest = jest.fn().mockResolvedValue(null);
         $model.on(TestModel.EVENT_DELETE, () => {
             expect($model.isDeleted).toBeTruthy();

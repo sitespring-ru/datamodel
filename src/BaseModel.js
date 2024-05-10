@@ -1,19 +1,4 @@
-import {
-    difference,
-    forEach,
-    get,
-    has,
-    isArray,
-    isEmpty,
-    isEqual,
-    isFunction,
-    isString,
-    keys,
-    mapValues,
-    pick,
-    reduce,
-    values
-} from "lodash-es";
+import {difference, forEach, get, has, isArray, isEmpty, isEqual, isFunction, isString, keys, mapValues, pick, reduce, unset, values} from "lodash-es";
 import BaseClass from "./BaseClass.js";
 import BaseProxy from "./BaseProxy.js";
 import validate from "validate.js";
@@ -93,20 +78,6 @@ export default class BaseModel extends BaseClass {
 
 
     /**
-     * Алиас модели для построения rest api запросов, генерации id и т.п.
-     * @type {String}
-     * */
-    entityName = 'base-model';
-
-
-    /**
-     * Название аттрибута сод. primary key
-     * @type {String}
-     * */
-    idProperty = 'id';
-
-
-    /**
      * @type {Boolean}
      * @readonly
      * */
@@ -114,24 +85,25 @@ export default class BaseModel extends BaseClass {
         return true;
     }
 
+    get entityName() {
+        return this.initialConfig.entityName || 'base-model'
+    }
 
-    /**
-     * Конфигурация для Прокси
-     * @return {Object}
-     * */
-    getProxyConfig() {
-        return BaseProxy.globalDefaultProxyConfig();
-    };
+    get idProperty() {
+        return this.initialConfig.idProperty || 'id';
+    }
+
 
     /**
      *  Конфигурация для настройки validate.js
      *  @return {Object}
      *  */
-    getValidationConfig() {
+    get validationConfig() {
         return {
             // Since validators don't include the argument name in the error message the validate function prepends it for them.
             // This behaviour can be disabled by setting the fullMessages option to false.
             fullMessages: false
+            , ...this.initialConfig.validate
         }
     };
 
@@ -159,13 +131,14 @@ export default class BaseModel extends BaseClass {
      * Карта действий для CRUD rest api
      * @return {Object.<String,String>}
      * */
-    urls() {
+    get urls() {
         const $id = this.getId();
         return {
             fetch: `${this.entityName}/${$id}`,
             create: `${this.entityName}`,
             save: `${this.entityName}/${$id}`,
-            delete: `${this.entityName}/${$id}`
+            delete: `${this.entityName}/${$id}`,
+            ...this.initialConfig.urls
         }
     }
 
@@ -174,12 +147,13 @@ export default class BaseModel extends BaseClass {
      * Карта глаголов для CRUD rest api
      * @return {Object.<String,String>}
      * */
-    verbs() {
+    get verbs() {
         return {
             fetch: 'GET',
             create: 'POST',
             save: 'PUT',
-            delete: 'DELETE'
+            delete: 'DELETE',
+            ...this.initialConfig.verbs
         }
     }
 
@@ -198,7 +172,7 @@ export default class BaseModel extends BaseClass {
     /**
      * Массив полей, которые могут быть изменены с помощью метода setAttributes
      * */
-    safeAttributes() {
+    get safeAttributes() {
         return keys(this.fields());
     }
 
@@ -219,7 +193,7 @@ export default class BaseModel extends BaseClass {
      * Карта фильтров аттрибутов для установки значений
      * @return {Object.<String,AttributeFilter>}
      * */
-    innerFilters() {
+    get innerFilters() {
         return {}
     }
 
@@ -228,7 +202,7 @@ export default class BaseModel extends BaseClass {
      * Карта фильтров аттрибутов для отправки на сервер
      * @return {Object.<String,AttributeFilter>}
      * */
-    submitFilters() {
+    get submitFilters() {
         return {}
     }
 
@@ -237,7 +211,7 @@ export default class BaseModel extends BaseClass {
      * Карта связей для автоматической обработки данных
      * @return {Object<String,RelationDefinition>}
      * */
-    relations() {
+    get relations() {
         return {}
     }
 
@@ -245,8 +219,8 @@ export default class BaseModel extends BaseClass {
     /**
      * Если связь
      * */
-    getHasRelation(name) {
-        return !!this.relations()[name];
+    getHasRelation(attrName) {
+        return Boolean(typeof this.relations[attrName] !== "undefined");
     }
 
 
@@ -279,11 +253,11 @@ export default class BaseModel extends BaseClass {
 
     /**
      * Стандартный конструктор задает начальную конфигурацию
-     * @param {object} $attributes Аттрибуты модели
-     * @param {Object} $config Конфиг для передачи в родительский конструктор
+     * @param {object} attributes Аттрибуты модели
+     * @param {Object} config Конфиг для передачи в родительский конструктор
      * */
-    constructor($attributes = {}, $config = {}) {
-        super($config);
+    constructor(attributes = {}, config = {}) {
+        super(config);
 
         this.isPhantom = true;
 
@@ -293,6 +267,7 @@ export default class BaseModel extends BaseClass {
          * @protected
          * */
         this._savedAttributes = {};
+
         // Задаем начальные данные
         Object.assign(this._savedAttributes, this.fields());
 
@@ -308,25 +283,25 @@ export default class BaseModel extends BaseClass {
          * @type {Boolean}
          * @protected
          * */
-        this._isDeleted = false;
+        this.isDeleted = false;
 
         /**
          * Индексированный объект ошибок
          * @type {AttributesMap}
          * @protected
          * */
-        this._errors = {};
+        this.errors = {};
 
         /**
          * Стек кешированных связанных Моделей/Хранилищ
          * @type {Object<String,(BaseModel|BaseStore)>}
-         * @protected
+         * @private
          * */
-        this._relations = {};
+        this.__cachedRelations = {};
 
         this.__createMagicProps();
-        if (!isEmpty($attributes)) {
-            this._innerSetAttributes($attributes);
+        if (!isEmpty(attributes)) {
+            this._innerSetAttributes(attributes);
             this.commitChanges();
         }
     }
@@ -366,23 +341,21 @@ export default class BaseModel extends BaseClass {
      * @protected
      * */
     __createRelation(name) {
-        const {type, model: modelConstructor, foreignKey, store: storeConstructor} = this.relations()[name];
+        const {type, model: modelConstructor, foreignKey, store: storeConstructor} = this.relations[name];
 
         if (type === 'hasOne') {
             Object.defineProperty(this, name, {
                 get() {
-                    if (!this._relations[name]) {
-                        const model = modelConstructor.createInstance();
-                        model.setAttributes(this.getAttribute(name));
-                        this._relations[name] = model;
+                    if (!this.__cachedRelations[name]) {
+                        this.__cachedRelations[name] = new modelConstructor(this.getAttribute(name));
                     }
-                    return this._relations[name];
+                    return this.__cachedRelations[name];
                 },
                 set(model) {
                     if (!(model instanceof modelConstructor)) {
                         throw new Error(`${name} relation expect ${modelConstructor.name} instance, ${model.constructor.name} given`);
                     }
-                    this._relations[name] = model;
+                    this.__cachedRelations[name] = model;
                     if (foreignKey) {
                         this.setAttribute(foreignKey, model.getId());
                     }
@@ -395,8 +368,8 @@ export default class BaseModel extends BaseClass {
             const storeConstructorReal = storeConstructor || BaseStore;
             Object.defineProperty(this, name, {
                 get() {
-                    if (!this._relations[name]) {
-                        const store = storeConstructorReal.createInstance({
+                    if (!this.__cachedRelations[name]) {
+                        const store = new storeConstructorReal({
                             model: modelConstructor,
                             filters: {
                                 id: {
@@ -406,15 +379,15 @@ export default class BaseModel extends BaseClass {
                             }
                         });
                         store.loadModels(this.getAttribute(name));
-                        this._relations[name] = store;
+                        this.__cachedRelations[name] = store;
                     }
-                    return this._relations[name];
+                    return this.__cachedRelations[name];
                 },
                 set(store) {
                     if (!(store instanceof storeConstructorReal)) {
                         throw new Error(`${name} relation expect ${storeConstructorReal.name} instance, ${store.constructor.name} given`);
                     }
-                    this._relations[name] = store;
+                    this.__cachedRelations[name] = store;
                 }
             });
             return;
@@ -488,21 +461,13 @@ export default class BaseModel extends BaseClass {
 
 
     /**
-     *  @return {boolean}
-     * */
-    get isDeleted() {
-        return this._isDeleted;
-    }
-
-
-    /**
      * Преобразование данных для отправки на сервер
      * @param {?Array} [$names] Список аттрибутов или все
      * @return {Object.<String, *>}
      * */
     getSubmitValues($names = null) {
         const $attrs = this.getAttributes($names);
-        const $filters = this.submitFilters();
+        const $filters = this.submitFilters;
         return mapValues($attrs, ($value, $attr) => this.applyFilter($filters[$attr], $value));
     }
 
@@ -570,8 +535,8 @@ export default class BaseModel extends BaseClass {
      * @protected
      * */
     _innerSetAttributes($attrs) {
-        const filters = this.innerFilters();
-        const safeAttrs = pick($attrs, this.safeAttributes());
+        const filters = this.innerFilters;
+        const safeAttrs = pick($attrs, this.safeAttributes);
         const withFilters = mapValues(safeAttrs, (value, key) => this.applyFilter(filters[key], value));
         Object.assign(this._dirtyAttributes, withFilters);
     }
@@ -624,7 +589,7 @@ export default class BaseModel extends BaseClass {
         const $constraintsToValidate = isArray($names) ? pick($rules, $names) : $rules;
         // Поскольку validate.js не поддерживает создание экземпляра
         // Возможно передать дополнительные опции при валидации, которые мы берем из конфигурации Модели
-        const $options = {...this.getValidationConfig(), ...$extraConfig};
+        const $options = {...this.validationConfig, ...$extraConfig};
         const $attrs = this.getAttributes($names);
         const $errors = validate($attrs, $constraintsToValidate, $options);
 
@@ -637,11 +602,26 @@ export default class BaseModel extends BaseClass {
 
     /**
      * Метод установки ошибок
-     * @param {Object.<string,array>} $errors Объект ошибок, где ключи это аттрибуты, значения массив с ошибками
+     * @param {Object.<string,array>} errors Объект ошибок, где ключи это аттрибуты, значения массив с ошибками
      * */
-    setErrors($errors) {
-        this._errors = $errors;
-        this.emit(this.constructor.EVENT_ERRORS_CHANGE, this._errors);
+    setErrors(errors) {
+        this.errors = errors;
+        this.emit(this.constructor.EVENT_ERRORS_CHANGE, this.errors);
+    }
+
+
+    /**
+     * Add error for specific attr name
+     * @param {String} field
+     * @param {String} error
+     * */
+    addError(field, error) {
+        if (has(this.errors, field)) {
+            this.errors[field].push(error);
+        } else {
+            this.errors[field] = [error];
+        }
+        this.emit(this.constructor.EVENT_ERRORS_CHANGE, this.errors);
     }
 
 
@@ -649,7 +629,7 @@ export default class BaseModel extends BaseClass {
      * @return {Boolean}
      * */
     get hasErrors() {
-        return !isEmpty(this._errors);
+        return !isEmpty(this.errors);
     }
 
 
@@ -657,16 +637,8 @@ export default class BaseModel extends BaseClass {
      * Сброс ошибок
      * */
     dropErrors() {
-        this._errors = {};
-        this.emit(this.constructor.EVENT_ERRORS_CHANGE, this._errors);
-    }
-
-
-    /**
-     * Текущий стек ошибок валидации
-     * */
-    get errors() {
-        return this._errors;
+        this.errors = {};
+        this.emit(this.constructor.EVENT_ERRORS_CHANGE, this.errors);
     }
 
 
@@ -675,8 +647,17 @@ export default class BaseModel extends BaseClass {
      * @return {?String}
      * */
     get firstErrorMessage() {
-        return get(values(this._errors), '[0][0]', null);
+        return get(values(this.errors), '[0][0]', null);
     }
+
+
+    /**
+     * Proxy configuration
+     * @return {Object}
+     * */
+    get proxyConfig() {
+        return this.initialConfig.proxy || BaseProxy;
+    };
 
 
     /**
@@ -686,26 +667,24 @@ export default class BaseModel extends BaseClass {
     get proxy() {
         if (!this.__innerProxy) {
             // Берем конфигурацию Прокси переданную в конструктор
-            this.__innerProxy = BaseClass.createInstance(this.getProxyConfig());
+            this.__innerProxy = this.configureProxy(this.proxyConfig);
         }
         return this.__innerProxy;
     }
 
 
-    set proxy(config) {
+    configureProxy(config) {
+        if (config instanceof BaseProxy) {
+            return config;
+        }
         if (typeof config === 'function') {
-            this._innerProxy = new config();
-            return;
+            return new config();
         }
         if (typeof config === 'object') {
-            this._innerProxy = BaseClass.createInstance({...this.getProxyConfig(), ...config});
-            return;
+            const ct = config.type || BaseProxy;
+            unset(config, 'type');
+            return new ct(config);
         }
-        // otherwise destroy proxy
-        if (this._innerProxy && this._innerProxy.destroy) {
-            this._innerProxy.destroy();
-        }
-        this._innerProxy = null;
     }
 
 
@@ -780,11 +759,11 @@ export default class BaseModel extends BaseClass {
 
     /**
      * Метод для парсинга ошибок из ответа сервера
-     * @param {object} $responseData
+     * @param {object} responseData
      * @return {object} Индексированный объект, где ключи название аттрибутов, а значения массив ошибок
      * @protected
      * */
-    _parseResponseValidationErrors($responseData) {
+    _parseResponseValidationErrors(responseData) {
         /*
         * По умолчанию ожидаем от сервера ответ в формате:
         * [
@@ -794,9 +773,9 @@ export default class BaseModel extends BaseClass {
          *     },
          *      ...
          * ]*/
-        if ($responseData[0] && $responseData[0]['message']) {
+        if (responseData[0] && responseData[0]['message']) {
             // Собираем ошибки в индексированный объект
-            return reduce($responseData, (result, value) => {
+            return reduce(responseData, (result, value) => {
                 result[value.field] = [value.message];
                 return result;
             }, {});
@@ -805,18 +784,18 @@ export default class BaseModel extends BaseClass {
         /*
         * Уже сформированный объект как есть или пустой обьект
         * */
-        return Object($responseData) || {};
+        return Object(responseData) || {};
     }
 
 
     /**
      * Получаем данные с сервера
-     * @param {?Object} [$extraConfig]
+     * @param {?Object} [extraConfig]
      * */
-    async fetch($extraConfig = {}) {
-        const url = this.urls()['fetch'];
-        const method = this.verbs()['fetch'];
-        const requestConfig = {url, method, ...$extraConfig};
+    async fetch(extraConfig = {}) {
+        const url = this.urls['fetch'];
+        const method = this.verbs['fetch'];
+        const requestConfig = {url, method, ...extraConfig};
         const data = await this.doRequest(requestConfig);
         this.setAttributes(data);
         this.commitChanges();
@@ -853,8 +832,8 @@ export default class BaseModel extends BaseClass {
             return Promise.resolve({});
         }
 
-        const url = this.urls()['save'];
-        const method = this.verbs()['save'];
+        const url = this.urls['save'];
+        const method = this.verbs['save'];
         const data = this.getSubmitValues(keys(this._dirtyAttributes));
         const responseData = await this.doRequest({url, method, data});
 
@@ -871,8 +850,8 @@ export default class BaseModel extends BaseClass {
      * Создаем модель на сервере
      * */
     async create() {
-        const url = this.urls()['create'];
-        const method = this.verbs()['create'];
+        const url = this.urls['create'];
+        const method = this.verbs['create'];
         const data = this.getSubmitValues();
         const responseData = await this.doRequest({url, method, data});
         this.setAttributes(responseData);
@@ -887,12 +866,35 @@ export default class BaseModel extends BaseClass {
      * Удаляем модель на сервере
      * */
     async delete() {
-        const url = this.urls()['delete'];
-        const method = this.verbs()['delete'];
+        const url = this.urls['delete'];
+        const method = this.verbs['delete'];
         await this.doRequest({url, method});
-        this._isDeleted = true;
+        this.isDeleted = true;
         this.isPhantom = true;
         this.emit(this.constructor.EVENT_DELETE);
         return Promise.resolve(true);
+    }
+
+
+    /**
+     * Helper to make fetch request by id and populate model
+     * @param {Any} id The identifier to fetch
+     * @param {Object} extraConfig The extra configuration to be passed to fetch method
+     * @return {BaseModel}
+     * */
+    static async fetchOne(id, extraConfig = {}) {
+        const model = new this();
+        model.setAttribute(model.idProperty, id);
+        await model.fetch(extraConfig);
+        return model;
+    }
+
+
+    /**
+     * Helper to make search request and populate new models
+     * @return {BaseModel[]}
+     * */
+    static async search(query, extraParams = {}) {
+
     }
 }

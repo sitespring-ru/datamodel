@@ -1,6 +1,6 @@
 /**
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
- * 
+ *
  * @licence Proprietary
  */
 import BaseModel from "../../src/BaseModel";
@@ -27,7 +27,7 @@ class TestModel extends BaseModel {
         };
     }
 
-    innerFilters() {
+    get innerFilters() {
         return {
             created_at: 'date',
             dob: 'date',
@@ -46,7 +46,7 @@ describe('Магические свойства модели', () => {
     });
 
     test('Cеттеры', () => {
-        const $model = TestModel.createInstance({
+        const $model = new TestModel({},{
             idProperty: 'name'
         });
 

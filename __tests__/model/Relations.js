@@ -25,7 +25,7 @@ class Author extends BaseModel {
         };
     }
 
-    relations() {
+    get relations() {
         return {
             contributors: {
                 type: 'hasMany',
@@ -65,7 +65,7 @@ class Book extends BaseModel {
         };
     }
 
-    relations() {
+    get relations() {
         return {
             articles: {
                 type: 'hasMany',
