@@ -8,7 +8,7 @@
 import {describe, expect, jest, test} from "@jest/globals";
 import {BaseProxy} from "../../index.js";
 
-describe('Work with extra headers', () => {
+describe('Proxy extra headers tests', () => {
     test('Setup extra headers via constructor', async () => {
         const proxy = new BaseProxy({
             extraHeaders: {
@@ -47,4 +47,52 @@ describe('Work with extra headers', () => {
             }
         })
     });
+
+
+    test('Extra headers via class extending', () => {
+        class ExtProxy extends BaseProxy {
+            get extraHeaders() {
+                return {
+                    'Proxy-Type': 'Ext'
+                }
+            }
+        }
+        ExtProxy.bearerToken = null;
+        const proxy = new ExtProxy({
+            extraHeaders: {
+                'Authorization': 'Bearer 123'
+            }
+        });
+
+        expect(proxy.requestHeaders).toEqual({
+            'Proxy-Type': 'Ext'
+        })
+    })
+
+
+    test('Extra headers via class extending with constructor merge', () => {
+        class Ext2Proxy extends BaseProxy {
+            get extraHeaders() {
+                return {
+                    ...this.initialConfig.extraHeaders,
+                    'Proxy-ext2': 'true'
+                }
+            }
+        }
+
+        Ext2Proxy.bearerToken = null;
+
+        const proxy = new Ext2Proxy({
+            extraHeaders: {
+                'Authorization': 'Bearer 456',
+                'Extra-ext2': 'true',
+            }
+        });
+
+        expect(proxy.requestHeaders).toEqual({
+            'Proxy-ext2': 'true',
+            'Authorization': 'Bearer 456',
+            'Extra-ext2': 'true',
+        })
+    })
 });

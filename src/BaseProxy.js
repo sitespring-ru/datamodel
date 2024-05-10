@@ -141,22 +141,30 @@ export default class BaseProxy extends BaseClass {
          * @member {?Object}
          * */
         this.responseData = null;
+    }
 
-        /**
-         * Сообщение об ошибке
-         * @type {String}
-         * */
-        this.defaultErrorMessage = config.defaultErrorMessage || 'Unknown network error';
+    get baseUrl() {
+        return this.initialConfig.baseUrl || '/';
+    }
 
-        this.baseUrl = config.baseUrl || '/';
+    get withCredentials() {
+        return this.initialConfig.withCredentials || false;
+    }
 
-        this.withCredentials = config.withCredentials || false;
+    get extraParams() {
+        return this.initialConfig.extraParams || {};
+    }
 
-        this.extraParams = config.extraParams || {};
+    get extraHeaders() {
+        return this.initialConfig.extraHeaders || {};
+    }
 
-        this.extraHeaders = config.extraHeaders || {};
+    get envelopeName() {
+        return this.initialConfig.envelopeName || 'data';
+    }
 
-        this.envelopeName = config.envelopeName || 'data';
+    get defaultErrorMessage() {
+        return this.initialConfig.defaultErrorMessage || 'Unknown network error';
     }
 
     /**
