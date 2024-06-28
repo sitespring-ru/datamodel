@@ -1,5 +1,5 @@
 import axios from "axios";
-import {get, isEmpty, set} from "lodash-es";
+import {get, isEmpty, merge, set} from "lodash-es";
 import BaseClass from "./BaseClass.js";
 
 /**
@@ -299,11 +299,11 @@ export default class BaseProxy extends BaseClass {
     async doRequest(extraConfig = {}) {
         const headers = this.requestHeaders;
         const params = this.requestParams;
-        const config = {
-            ...(!isEmpty(headers) ? {headers} : {})
-            , ...(!isEmpty(params) ? {params} : {})
-            , ...extraConfig
-        };
+        const config = merge({},
+            (!isEmpty(headers) ? {headers} : {})
+            , (!isEmpty(params) ? {params} : {})
+            , extraConfig
+        );
 
         if (false === await this.beforeRequest(config)) {
             return false;
