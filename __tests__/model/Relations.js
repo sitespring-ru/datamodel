@@ -1,6 +1,6 @@
 /**
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
- * 
+ *
  * @licence Proprietary
  */
 import BaseModel from "../../src/BaseModel";
@@ -214,7 +214,7 @@ describe('Конфигурация связанных классов', () => {
         expect(theBook.articles.doRequest).toHaveBeenCalledWith({
             url: '/article'
             , params: {
-                filters: [{property: 'book_id', value: 1, operator: '='}]
+                filter: "[{\"property\":\"book_id\",\"value\":1,\"operator\":\"=\"}]"
             }
         });
     });

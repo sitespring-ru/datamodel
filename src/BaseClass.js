@@ -1,4 +1,4 @@
-import {forEach, isArray, isEmpty, omit, set} from "lodash-es";
+import {defaultsDeep, forEach, isArray, isEmpty, omit, set} from "lodash-es";
 import mitt from "mitt";
 
 /**
@@ -20,12 +20,16 @@ export default class BaseClass {
      * @see https://github.com/developit/mitt
      * */
 
+    get defaults() {
+        return {};
+    }
+
 
     /**
      * @param {?Object} [config] Объект конфигурации Конструктора
      * */
     constructor(config = {}) {
-        this.initialConfig = config || {};
+        this.initialConfig = defaultsDeep(config || {}, this.defaults);
     }
 
 

@@ -154,6 +154,19 @@ export default class BaseStore extends BaseClass {
         this.pageSize = config.pageSize ?? 20;
     }
 
+    get defaults() {
+        return {
+            pageSize: 20,
+            isPaginated: false,
+            autoSort: false,
+            autoFilter: false,
+            filterParam: 'filter',
+            sortParam: 'sort',
+            searchParam: 'search'
+        };
+    }
+
+
     get model() {
         return this.initialConfig.model || BaseModel;
     }
@@ -620,6 +633,23 @@ export default class BaseStore extends BaseClass {
 
 
     /**
+     * Make search request
+     * @param {String} value The query string
+     * */
+    async search(value) {
+        const trimmedValue = value.trim();
+        if (isEmpty(trimmedValue)) {
+            return this.fetch();
+        }
+        return this.fetch({
+            params: {
+                [this.initialConfig.searchParam]: trimmedValue
+            }
+        });
+    }
+
+
+    /**
      * @param {object} data Объект ответа от Прокси
      * @return {Object[]}
      * @protected
@@ -870,7 +900,7 @@ export default class BaseStore extends BaseClass {
         let filters = {};
         if (this.hasFilters) {
             Object.assign(filters, {
-                filters: values(this._innerFilters)
+                [this.initialConfig.filterParam]: JSON.stringify(values(this._innerFilters))
             })
         }
         return filters;

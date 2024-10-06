@@ -233,7 +233,7 @@ describe('Работа с фильтрами', () => {
         expect($store.doRequest).toHaveBeenCalledWith({
             url: 'https://api.com',
             params: {
-                filters: [{property: 'age', value: 16, operator: '>='}, {property: 'name', operator: '=', value: true}]
+                filter: "[{\"property\":\"age\",\"value\":16,\"operator\":\">=\"},{\"property\":\"name\",\"operator\":\"=\",\"value\":true}]"
             }
         });
     });
@@ -247,7 +247,7 @@ describe('Работа с фильтрами', () => {
         expect($store.doRequest).toHaveBeenCalledWith({
             url: '/base-model',
             params: {
-                filters: [{property: 'name', operator: '=', value: true}]
+                filter: "[{\"property\":\"name\",\"operator\":\"=\",\"value\":true}]"
             }
         });
 
@@ -258,7 +258,7 @@ describe('Работа с фильтрами', () => {
         expect($store.doRequest).toHaveBeenCalledWith({
             url: '/base-model',
             params: {
-                filters: [{property: 'age', value: 16, operator: '>='}, {property: 'name', operator: '=', value: true}]
+                filter:  "[{\"property\":\"age\",\"value\":16,\"operator\":\">=\"},{\"property\":\"name\",\"operator\":\"=\",\"value\":true}]"
             }
         });
 
