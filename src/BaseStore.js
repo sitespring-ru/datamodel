@@ -93,8 +93,8 @@ export default class BaseStore extends BaseClass {
 
     /**
      * @param {Object} config Дополнительная конфигурация
-     * */
-    constructor(config = {}) {
+     @param {Array} models Initail models data to be loaded to store     * */
+    constructor(config = {}, models = []) {
         super(config);
 
         /**
@@ -152,17 +152,15 @@ export default class BaseStore extends BaseClass {
         }
 
         this.pageSize = config.pageSize ?? 20;
+
+        if (Array.isArray(models)) {
+            this.loadModels(models)
+        }
     }
 
     get defaults() {
         return {
-            pageSize: 20,
-            isPaginated: false,
-            autoSort: false,
-            autoFilter: false,
-            filterParam: 'filter',
-            sortParam: 'sort',
-            searchParam: 'search'
+            pageSize: 20, isPaginated: false, autoSort: false, autoFilter: false, filterParam: 'filter', sortParam: 'sort', searchParam: 'search'
         };
     }
 
@@ -366,6 +364,10 @@ export default class BaseStore extends BaseClass {
             this.__innerProxy = this.configureProxy(this.proxyConfig);
         }
         return this.__innerProxy;
+    }
+
+    set proxy(config) {
+        this.__innerProxy = this.configureProxy(config);
     }
 
 

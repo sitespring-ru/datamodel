@@ -50,4 +50,20 @@ describe('Configuration', () => {
             }
         })
     })
+
+    test('Set proxy', () => {
+        const store = new BaseStore();
+        expect(store.proxy).toBeInstanceOf(BaseProxy)
+        store.proxy = {
+            type: CustomProxy,
+            baseUrl: 'foo/bar'
+        }
+        expect(store.proxy).toBeInstanceOf(CustomProxy)
+        expect(store.proxy.baseUrl).toBe('foo/bar')
+    })
+
+    test('Set models', () => {
+        const store = new BaseStore({}, [{title: 'foo'}, {title: 'bar'}]);
+        expect(store.models).toHaveLength(2)
+    })
 });
