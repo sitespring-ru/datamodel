@@ -209,7 +209,7 @@ export default class BaseModel extends BaseClass {
 
     /**
      * Карта связей для автоматической обработки данных
-     * @return {Object<String,RelationDefinition>}
+     * @return {Object.<String,RelationDefinition>}
      * */
     get relations() {
         return {}
@@ -308,11 +308,11 @@ export default class BaseModel extends BaseClass {
             , [this.idProperty]: this.constructor.generateId() // Auto generate id
             , ...attributes
         };
-        this.__innerSetAttributes(this.__initialData);
 
         // Create magic props
         this.__createMagicProps();
 
+        this.loadData(this.__initialData);
         this.commitChanges();
     }
 
@@ -322,42 +322,45 @@ export default class BaseModel extends BaseClass {
      * @protected
      * */
     __createMagicProps() {
-        forEach(this.__initialData, (value, attrName) => {
-            // Уже есть пропс с именем аттрибута
-            if (typeof this[attrName] !== "undefined") {
-                return;
-            }
+        forEach(keys(this.fields), fieldName => this.__createFieldGetter(fieldName));
+        forEach(this.relations, (relationConfig, relationName) => this.__createRelation(relationName, relationConfig))
+    }
 
-            // Создаем связь
-            if (this.getHasRelation(attrName)) {
-                this.__createRelation(attrName);
-                return;
-            }
 
-            // Обычный геттер/сеттер для аттрибута
-            Object.defineProperty(this, attrName, {
-                get() {
-                    return this.getAttribute(attrName);
-                },
-                set(v) {
-                    this.setAttribute(attrName, v);
-                }
-            })
-        });
+    __createFieldGetter(attrName) {
+        // Property alreasy exists
+        if (typeof this[attrName] !== "undefined") {
+            return;
+        }
+
+        // Обычный геттер/сеттер для аттрибута
+        Object.defineProperty(this, attrName, {
+            get() {
+                return this.getAttribute(attrName);
+            },
+            set(v) {
+                this.setAttribute(attrName, v);
+            }
+        })
     }
 
 
     /**
      * @protected
      * */
-    __createRelation(name) {
-        const {type, model: modelConstructor, foreignKey, store: storeConstructor} = this.relations[name];
+    __createRelation(name, config) {
+        // Property alreasy exists
+        if (typeof this[name] !== "undefined") {
+            return;
+        }
+
+        const {type, model: modelConstructor, foreignKey, store: storeConstructor} = config;
 
         if (type === 'hasOne') {
             Object.defineProperty(this, name, {
                 get() {
                     if (!this.__cachedRelations[name]) {
-                        this.__cachedRelations[name] = new modelConstructor(this.getAttribute(name));
+                        this.__cachedRelations[name] = new modelConstructor();
                     }
                     return this.__cachedRelations[name];
                 },
@@ -379,7 +382,7 @@ export default class BaseModel extends BaseClass {
             Object.defineProperty(this, name, {
                 get() {
                     if (!this.__cachedRelations[name]) {
-                        const store = new storeConstructorReal({
+                        this.__cachedRelations[name] = new storeConstructorReal({
                             model: modelConstructor,
                             filters: {
                                 id: {
@@ -388,8 +391,6 @@ export default class BaseModel extends BaseClass {
                                 }
                             }
                         });
-                        store.loadModels(this.getAttribute(name));
-                        this.__cachedRelations[name] = store;
                     }
                     return this.__cachedRelations[name];
                 },
@@ -403,7 +404,7 @@ export default class BaseModel extends BaseClass {
             return;
         }
 
-        throw new Error(`Invalid type {type}`);
+        throw new Error(`Invalid type ${type}`);
     }
 
 
@@ -549,6 +550,19 @@ export default class BaseModel extends BaseClass {
         const safeAttrs = pick(attrs, this.safeAttributes);
         const withFilters = mapValues(safeAttrs, (value, key) => this.applyFilter(filters[key], value));
         Object.assign(this._dirtyAttributes, withFilters);
+    }
+
+
+    /**
+     * Load data to model with relations data and without triggering change event
+     * @param {Object} data
+     * */
+    loadData(data) {
+        const attrs = pick(data, keys(this.fields));
+        this.__innerSetAttributes(attrs);
+
+        const relatedData = pick(data, keys(this.relations));
+        this.__loadRelationsData(relatedData)
     }
 
 
@@ -822,9 +836,8 @@ export default class BaseModel extends BaseClass {
         const method = this.verbs['fetch'];
         const requestConfig = {url, method, ...extraConfig};
         const data = await this.doRequest(requestConfig);
-        this.setAttributes(data);
+        this.loadData(data);
         this.commitChanges();
-        this.__fetchRelationsData(data);
         this.isPhantom = false;
         this.emit(this.constructor.EVENT_FETCH, data);
         return Promise.resolve(data);
@@ -834,18 +847,16 @@ export default class BaseModel extends BaseClass {
     /**
      * @protected
      * */
-    __fetchRelationsData(data) {
-        forEach(data, (value, attr) => {
-            if (this.getHasRelation(attr)) {
-                const relation = this[attr];
-                if (relation.isModel) {
-                    relation.setAttributes(value);
-                }
-                if (relation.isStore) {
-                    relation.loadModels(value);
-                }
+    __loadRelationsData(relatedData) {
+        forEach(relatedData, (data, relationName) => {
+            const relation = this[relationName];
+            if (relation instanceof BaseStore) {
+                relation.clear()
+                relation.loadModels(data)
+            } else {
+                relation.loadData(data)
             }
-        });
+        })
     }
 
 
@@ -862,7 +873,7 @@ export default class BaseModel extends BaseClass {
         const data = this.getSubmitValues(keys(this._dirtyAttributes));
         const responseData = await this.doRequest({url, method, data});
 
-        this.setAttributes(responseData);
+        this.loadData(responseData);
         this.commitChanges();
         this.isPhantom = false;
         this.emit(this.constructor.EVENT_SAVE, responseData);
@@ -879,7 +890,7 @@ export default class BaseModel extends BaseClass {
         const method = this.verbs['create'];
         const data = this.getSubmitValues();
         const responseData = await this.doRequest({url, method, data});
-        this.setAttributes(responseData);
+        this.loadData(responseData);
         this.commitChanges();
         this.isPhantom = false;
         this.emit(this.constructor.EVENT_CREATE, responseData);

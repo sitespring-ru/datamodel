@@ -20,8 +20,7 @@ class Author extends BaseModel {
     get fields() {
         return {
             ...super.fields,
-            name: null,
-            contributors: []
+            name: null
         };
     }
 
@@ -59,8 +58,6 @@ class Book extends BaseModel {
         return {
             ...super.fields,
             title: 'bar',
-            articles: [],
-            author: null,
             author_id: null
         };
     }
@@ -73,8 +70,8 @@ class Book extends BaseModel {
                 foreignKey: 'book_id'
             },
             author: {
-                type: 'hasOne',
                 model: Author,
+                type: 'hasOne',
                 foreignKey: 'author_id'
             }
         }
