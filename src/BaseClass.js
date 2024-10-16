@@ -30,6 +30,8 @@ export default class BaseClass {
      * */
     constructor(config = {}) {
         this.initialConfig = defaultsDeep(config || {}, this.defaults);
+
+        this.__createInitialConfigMagicProps()
     }
 
 
@@ -169,5 +171,28 @@ export default class BaseClass {
             this.__emitterInstance.all.clear();
             this.__emitterInstance = null;
         }
+    }
+
+
+    /**
+     * Create getters and setters for initialConfig keys
+     * @protected
+     * */
+    __createInitialConfigMagicProps() {
+        Object.keys(this.defaults).forEach((attrName) => {
+            // Property alreasy exists
+            if (typeof this[attrName] !== "undefined") {
+                return;
+            }
+
+            Object.defineProperty(this, attrName, {
+                get() {
+                    return this.initialConfig[attrName];
+                },
+                set(v) {
+                    this.initialConfig[attrName] = v;
+                }
+            })
+        })
     }
 }

@@ -258,7 +258,7 @@ describe('Работа с фильтрами', () => {
         expect($store.doRequest).toHaveBeenCalledWith({
             url: '/base-model',
             params: {
-                filter:  "[{\"property\":\"age\",\"value\":16,\"operator\":\">=\"},{\"property\":\"name\",\"operator\":\"=\",\"value\":true}]"
+                filter: "[{\"property\":\"age\",\"value\":16,\"operator\":\">=\"},{\"property\":\"name\",\"operator\":\"=\",\"value\":true}]"
             }
         });
 
@@ -460,4 +460,17 @@ describe('Пагинация', () => {
         expect($store.isEmpty).toBeTruthy();
         expect($store.hasNextPage).toBeTruthy();
     });
+
+
+    test('Initial config magic props', () => {
+        const store = new PersonsTestStore({
+            isPaginated: true,
+            pageSize: 6,
+            foo: 'bar'
+        });
+
+        expect(store.foo).toBeUndefined() // no 'foo' in defaults
+        expect(store.pageSize).toEqual(6)
+        expect(store.isPaginated).toBeTruthy()
+    })
 });

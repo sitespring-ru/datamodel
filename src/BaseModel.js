@@ -12,6 +12,7 @@ import BaseStore from "./BaseStore.js";
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
  *
  * @property {Boolean} isPhantom Имеет ли модель id в базе данных на стороне сервера
+ * @property {?BaseStore} store Referenced store in which context this model belongs to
  */
 export default class BaseModel extends BaseClass {
     /**
@@ -314,6 +315,8 @@ export default class BaseModel extends BaseClass {
 
         this.loadData(this.__initialData);
         this.commitChanges();
+
+        this.store = null;
     }
 
 

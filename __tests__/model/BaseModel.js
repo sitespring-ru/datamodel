@@ -5,7 +5,8 @@
  */
 import BaseModel from "../../src/BaseModel";
 import axios from "axios";
-import {jest} from '@jest/globals'
+import {expect, jest} from '@jest/globals'
+import {BaseStore} from "../../index.js";
 
 // Эмулируем модуль целиком
 jest.mock('axios');
@@ -60,7 +61,6 @@ class TestModel extends BaseModel {
         }
     }
 }
-
 
 
 describe('Валидация на стороне клиента', () => {
@@ -238,4 +238,20 @@ describe('CRUD rest api', () => {
         $model.delete();
 
     });
+
+
+    test('Store context', () => {
+        const store = new BaseStore({model: TestModel})
+        const model = store.createModel()
+        expect(model).toBeInstanceOf(TestModel)
+
+        store.loadModel(model)
+        expect(model.store).toBe(store)
+    })
+
+    test('Store context with defaults', () => {
+        const store = new BaseStore({model: TestModel, modelDefaults: {name: 'bar'}})
+        const model = store.createModel()
+        expect(model.attributes).toMatchObject({name: 'bar'})
+    })
 });

@@ -4,15 +4,20 @@ import BaseModel from "./BaseModel.js";
 import BaseProxy from "./BaseProxy.js";
 
 /**
- * Базовый функционал хранилища
+ * The Base Store functionality class
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
  *
- * @property {BaseModel} model The model constructor
+ * @property {BaseModel} model The model this store is operating
  * @property {Boolean} isPaginated Стоит ли обрабатывать хранилище по странично
  * @property {String} fetchUrl Url для получения данных с удаленного сервера
  * @property {Number} pageSize Limit models per page, 20 by default
  * @property {Boolean} autoSort apply auto sorting, default false
  * @property {Boolean} autoFilter apply auto filtering, default false
+ * @property {Boolean} isPaginated default false
+ * @property {String} filterParam The request query param for filters data, default is 'filter'
+ * @property {String} sortParam The request query param for sorting data, default is 'sort'
+ * @property {String} searchParam The name of query param with search string, default is 'search'
+ * @property {Object} modelDefaultConfig The data to be loaded to model during creation method default {}
  */
 export default class BaseStore extends BaseClass {
     /**
@@ -139,20 +144,6 @@ export default class BaseStore extends BaseClass {
             this.setFilters(config.filters)
         }
 
-        if (config.autoFilter) {
-            this.autoFilter = Boolean(config.autoFilter);
-        }
-
-        if (config.autoSort) {
-            this.autoSort = Boolean(config.autoSort);
-        }
-
-        if (config.isPaginated) {
-            this.isPaginated = Boolean(config.isPaginated);
-        }
-
-        this.pageSize = config.pageSize ?? 20;
-
         if (Array.isArray(models)) {
             this.loadModels(models)
         }
@@ -160,13 +151,21 @@ export default class BaseStore extends BaseClass {
 
     get defaults() {
         return {
-            pageSize: 20, isPaginated: false, autoSort: false, autoFilter: false, filterParam: 'filter', sortParam: 'sort', searchParam: 'search'
+            pageSize: 20
+            , isPaginated: false
+            , autoSort: false
+            , autoFilter: false
+            , filterParam: 'filter'
+            , sortParam: 'sort'
+            , searchParam: 'search'
+            , modelDefaults: {}
+            , model: BaseModel
         };
     }
 
 
     get model() {
-        return this.initialConfig.model || BaseModel;
+        return this.initialConfig.model;
     }
 
 
@@ -213,11 +212,11 @@ export default class BaseStore extends BaseClass {
 
 
     /**
-     * Конфигурация создаваемой Модели
+     * The data to be passed to created model in this store context
      * @return {Object}
      * */
-    get modelExtraConfig() {
-        return {}
+    get modelDefaultConfig() {
+        return this.initialConfig.modelDefaults
     };
 
     /**
@@ -466,10 +465,7 @@ export default class BaseStore extends BaseClass {
         const {isPhantom} = options;
         // Был передан объект аттрибутов
         if (!(modelOrAttrs instanceof this.model)) {
-            model = new this.model(modelOrAttrs, {
-                proxy: this.proxy.constructor, // Model in store has the same proxy type
-                ...this.modelExtraConfig
-            });
+            model = this.createModel(modelOrAttrs);
         } else {
             model = modelOrAttrs;
         }
@@ -483,9 +479,11 @@ export default class BaseStore extends BaseClass {
             return {model: modelInStore, isCreated: false};
         }
 
-        this._innerModels.push(model);
+
+        model.store = this;
         model.commitChanges();
         model.isPhantom = !!isPhantom;
+        this._innerModels.push(model);
         return {model, isCreated: true};
     }
 
@@ -1033,5 +1031,18 @@ export default class BaseStore extends BaseClass {
                 }
             },
         };
+    }
+
+
+    /**
+     * Create new model in store context using modelDefault configuration
+     * @param {Object} extraData Extra data to be merged and passed to model`s constructor
+     * @return {BaseModel} The created model
+     * */
+    createModel(extraData = {}) {
+        const data = {...this.modelDefaultConfig, ...extraData};
+        return new this.model(data, {
+            proxy: this.proxy.constructor, // Model in store has the same proxy type
+        });
     }
 }
