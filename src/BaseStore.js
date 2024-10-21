@@ -1,8 +1,9 @@
-import {each, find, get, isEmpty, isEqual, isFunction, isMatch, map, merge, remove, size, sumBy, unset, values} from "lodash-es";
+import {each, find, get, isEmpty, isEqual, isFunction, isMatch, map, merge, remove, size, sumBy, unset} from "lodash-es";
 import BaseClass from "./BaseClass.js";
 import BaseModel from "./BaseModel.js";
 import BaseProxy from "./BaseProxy.js";
-import BaseStoreFilter from "./BaseStoreFilter.js";
+import BaseFilter from "./BaseFilter.js";
+import BaseSorter from "./BaseSorter.js";
 
 /**
  * The Base Store functionality class
@@ -17,23 +18,10 @@ import BaseStoreFilter from "./BaseStoreFilter.js";
  * @property {Boolean} isPaginated default false
  * @property {String} filterParam The request query param for filters data, default is 'filter'
  * @property {String} sortParam The request query param for sorting data, default is 'sort'
- * @property {String} searchParam The name of query param with search string, default is 'search'
+ * @property {String} searchParam The name of query param with search string, default is 'q'
  * @property {Object} modelDefaultConfig The data to be loaded to model during creation method default {}
  */
 export default class BaseStore extends BaseClass {
-    /**
-     * @typedef {object} SorterDefinition Объект описания Сортировки
-     * @property {string} property Название аттрибута
-     * @property {?string} direction Один из [BaseStore.SORT_ASC,BaseStore.SORT_DESC]
-     * */
-
-    /**
-     *  @typedef {object} FilterDefinition Объект описания Фильтра
-     *  @property {string} property Название аттрибута
-     *  @property {?*} value Значение для сравнения
-     *  @property {?string} operator Один из ['>','<','=','like','>=','<=']
-     * */
-
     /**
      * @typedef {object} PaginationDefinition Метаданные Пагинации
      * @property {number} pageCount Количество страниц
@@ -43,17 +31,11 @@ export default class BaseStore extends BaseClass {
      * */
 
     /**
-     * Константы сортировки
-     * */
-    static SORT_DESC = 'desc';
-    static SORT_ASC = 'asc';
-
-    /**
      * Событие изменения сортировок
      * @event BaseStore#EVENT_SORTERS_CHANGE
      * @param {{
-     * oldSorters: Object.<String,SorterDefinition>,
-     * newSorters: Object.<String,SorterDefinition>
+     * oldSorters: Array.<BaseSorter>,
+     * newSorters: Array.<BaseSorter>
      *     }} data
      * */
     static EVENT_SORTERS_CHANGE = 'sorterschange';
@@ -62,8 +44,8 @@ export default class BaseStore extends BaseClass {
      * Событие изменения фильтров
      * @event BaseStore#EVENT_FILTERS_CHANGE
      * @param {{
-     * oldFilters: Object.<String,BaseStoreFilter>,
-     * newFilters: Object.<String,BaseStoreFilter>
+     * oldFilters: Array.<BaseFilter>,
+     * newFilters: Array.<BaseFilter>
      * }} data
      * */
     static EVENT_FILTERS_CHANGE = 'filterschange';
@@ -112,14 +94,14 @@ export default class BaseStore extends BaseClass {
 
         /**
          * Внутренняя карта сортировок по id
-         * @type {Object.<String,SorterDefinition>}
+         * @type {Array.<BaseSorter>}
          * @private
          * */
-        this._innerSorters = {};
+        this._innerSorters = [];
 
         /**
          * Filters stack
-         * @type {Array.<BaseStoreFilter>}
+         * @type {Array.<BaseFilter>}
          * @private
          * */
         this._innerFilters = [];
@@ -136,6 +118,12 @@ export default class BaseStore extends BaseClass {
          * @private
          * */
         this._pagination = null;
+
+        /**
+         * @type {?String} The query string for search requests
+         * @private
+         * */
+        this._searchString = null;
 
         if (config.sorters) {
             this.setSorters(config.sorters)
@@ -158,7 +146,7 @@ export default class BaseStore extends BaseClass {
             , autoFilter: false
             , filterParam: 'filter'
             , sortParam: 'sort'
-            , searchParam: 'search'
+            , searchParam: 'q'
             , modelDefaults: {}
             , model: BaseModel
         };
@@ -193,7 +181,7 @@ export default class BaseStore extends BaseClass {
 
     /**
      * @getter
-     * @return {Array.<BaseStoreFilter>}
+     * @return {Array.<BaseFilter>}
      * */
     get filters() {
         return this._innerFilters;
@@ -587,10 +575,11 @@ export default class BaseStore extends BaseClass {
      * @fires BaseStore#EVENT_FETCH
      * */
     async fetch(config = {}) {
-        const filtersParams = this._serializeFiltersToRequestParams();
-        const sortersParams = this._serializeSortersToRequestParams();
-        const pageParams = this.isPaginated ? this._serializePaginationToRequestParams() : {};
-        const params = {...filtersParams, ...sortersParams, ...pageParams};
+        const searchParams = this.serializeSearchStringToRequestParams();
+        const filtersParams = this.serializeFiltersToRequestParams();
+        const sortersParams = this.serializeSortersToRequestParams();
+        const pageParams = this.isPaginated ? this.serializePaginationToRequestParams() : {};
+        const params = {...searchParams, ...filtersParams, ...sortersParams, ...pageParams};
         const url = this.buildFetchUrl();
         // lodash merge to do deep merging
         const requestConfig = merge({}, {url, params}, {...config});
@@ -638,19 +627,11 @@ export default class BaseStore extends BaseClass {
 
 
     /**
-     * Make search request
+     * Save string for search requests
      * @param {String} value The query string
      * */
-    async search(value) {
-        const trimmedValue = value.trim();
-        if (isEmpty(trimmedValue)) {
-            return this.fetch();
-        }
-        return this.fetch({
-            params: {
-                [this.initialConfig.searchParam]: trimmedValue
-            }
-        });
+    async setSearchString(value) {
+        this._searchString = value.trim();
     }
 
 
@@ -668,10 +649,10 @@ export default class BaseStore extends BaseClass {
     /**
      * Internal filter creation
      * @return void;
-     * @param {String|Object|BaseStoreFilter} filterDefs
+     * @param {String|Object|BaseFilter} filterDefs
      * */
     _internalApplyFilter(filterDefs) {
-        const filter = BaseStoreFilter.parseFromMixed(filterDefs)
+        const filter = BaseFilter.parseFromMixed(filterDefs)
         if (filter && this.hasFilter(filter.id)) {
             remove(this._innerFilters, {id: filter.id}); // delete filter with same id without triggering events
         }
@@ -682,13 +663,13 @@ export default class BaseStore extends BaseClass {
     /**
      * Add filter to store
      * @fires BaseStore#EVENT_FILTERS_CHANGE
-     * @param args
+     * @param {BaseFilter} filter
      * */
-    addFilter(...args) {
-        const $oldFilters = {...this._innerFilters};
-        this._internalApplyFilter(...args);
-        if (!isEqual($oldFilters, this._innerFilters)) {
-            this.emit(this.constructor.EVENT_FILTERS_CHANGE, {oldFilters: $oldFilters, newFilters: this._innerFilters});
+    addFilter(filter) {
+        const filters = [...this.filters];
+        this._internalApplyFilter(filter);
+        if (!isEqual(filters, this._innerFilters)) {
+            this.emit(this.constructor.EVENT_FILTERS_CHANGE, {oldFilters: filters, newFilters: this._innerFilters});
             this._handleAutoFiltering();
         }
     }
@@ -706,12 +687,12 @@ export default class BaseStore extends BaseClass {
 
     /**
      * Apply filters to store by batch in one call
-     * @param {Array.<BaseStoreFilter>} filters
+     * @param {Array.<BaseFilter>} filters
      * @return void
      * @fires BaseStore#EVENT_FILTERS_CHANGE
      * */
     setFilters(filters = []) {
-        const oldFilters = this._innerFilters; // save current filters stack
+        const oldFilters = [...this._innerFilters]; // save current filters stack
         this._innerFilters = []; // drop all filters
         filters.forEach(filter => this._internalApplyFilter(filter))
 
@@ -728,8 +709,8 @@ export default class BaseStore extends BaseClass {
      * @fires BaseStore#EVENT_FILTERS_CHANGE
      * */
     removeFilter(filterId) {
-        const oldFilters = this._innerFilters;
-        this._innerFilters = remove(this._innerFilters, {id: filterId});
+        const oldFilters = [...this.filters];
+        remove(this._innerFilters, {id: filterId});
         if (!isEqual(oldFilters, this._innerFilters)) {
             this.emit(this.constructor.EVENT_FILTERS_CHANGE, {oldFilters: oldFilters, newFilters: this._innerFilters});
             this._handleAutoFiltering();
@@ -742,8 +723,9 @@ export default class BaseStore extends BaseClass {
      * */
     removeAllFilters() {
         if (this.hasFilters) {
+            const filters = [...this.filters];
             this._innerFilters = [];
-            this.emit(this.constructor.EVENT_FILTERS_CHANGE, {oldFilters: this._innerFilters, newFilters: []});
+            this.emit(this.constructor.EVENT_FILTERS_CHANGE, {oldFilters: filters, newFilters: []});
             this._handleAutoFiltering();
         }
     }
@@ -752,7 +734,7 @@ export default class BaseStore extends BaseClass {
     /**
      * Find filter or return null
      * @param {String|Number} filterId
-     * @return {?BaseStoreFilter}
+     * @return {?BaseFilter}
      * */
     getFilter(filterId) {
         return find(this._innerFilters, {id: filterId})
@@ -779,43 +761,62 @@ export default class BaseStore extends BaseClass {
 
 
     /**
+     * Find sorter or return null
+     * @param {String|Number} sorterId
+     * @return {?BaseSorter}
+     * */
+    getSorter(sorterId) {
+        return find(this._innerSorters, {id: sorterId})
+    }
+
+
+    /**
+     * Check if Sorter exists
+     * @param {String|Number} sorterId
+     * @return boolean
+     * */
+    hasSorter(sorterId) {
+        return !!this.getSorter(sorterId)
+    }
+
+
+    /**
      * Логика обработки добавления Сортировки
-     * @param {string} $id Идентификатор фильтра
-     * @param {SorterDefinition} $sorter
+     * @param {string|Object|BaseSorter} sorterDefs
      * @return void;
      * */
-    _internalApplySorter($id, $sorter) {
-        if (!$sorter.property) {
-            throw new Error("Sorter`s property must be set");
+    _internalApplySorter(sorterDefs) {
+        const sorter = BaseSorter.parseFromMixed(sorterDefs)
+        if (sorter && this.hasSorter(sorter.id)) {
+            remove(this._innerSorters, {id: sorter.id}); // delete with same id without triggering events
         }
-        if (!$sorter.direction) {
-            $sorter.direction = this.constructor.SORT_ASC;
-        }
-        if ([this.constructor.SORT_ASC, this.constructor.SORT_DESC].indexOf($sorter.direction) < 0) {
-            throw new Error(`Invalid sorter's direction definition ${$sorter.direction}. Expect ${this.constructor.SORT_ASC} or ${this.constructor.SORT_DESC}`);
-        }
-        this._innerSorters[$id] = $sorter;
+        this._innerSorters.push(sorter);
     }
 
 
     /**
      * Сбрасываем все сортировки
      * */
-    dropAllSorters() {
-        this.setSorters({});
+    removeAllSorters() {
+        if (this.hasSorters) {
+            const sorters = [...this.sorters];
+            this._innerSorters = [];
+            this.emit(this.constructor.EVENT_SORTERS_CHANGE, {oldSorters: sorters, newSorters: []});
+            this._handleAutoSorting();
+        }
     }
 
 
     /**
      * Задаем новую карту сортировщиков
-     * @param {Object.<String,SorterDefinition>} $sorters
+     * @param {BaseSorter[]} sorters
      *
      * @fires BaseStore#EVENT_SORTERS_CHANGE
      * */
-    setSorters($sorters) {
-        const oldSorters = {...this._innerSorters};
-        this._innerSorters = {};
-        each($sorters, (sorter, id) => this._internalApplySorter(id, sorter));
+    setSorters(sorters) {
+        const oldSorters = [...this._innerSorters];
+        this._innerSorters = [];
+        sorters.forEach(sorter => this._internalApplySorter(sorter));
         if (!isEqual(oldSorters, this._innerSorters)) {
             this.emit(this.constructor.EVENT_SORTERS_CHANGE, {oldSorters, newSorters: this._innerSorters});
             this._handleAutoSorting();
@@ -825,7 +826,7 @@ export default class BaseStore extends BaseClass {
 
     /**
      * Актуальная карта сортировок
-     * @return {Object.<String,SorterDefinition>}
+     * @return {Array.<BaseSorter>}
      * */
     getSorters() {
         return this._innerSorters;
@@ -834,31 +835,30 @@ export default class BaseStore extends BaseClass {
 
     /**
      * Добавляем Сортировку
-     * @param {String} $id
-     * @param {SorterDefinition} $sorter
+     * @param {BaseSorter} sorter
      * @throws Error В случае некорректно переданного объекта Сортировки
      *
      * @fires BaseStore#EVENT_SORTERS_CHANGE
      * */
-    addSorter($id, $sorter) {
-        const $oldSorters = {...this._innerSorters};
-        this._internalApplySorter($id, $sorter);
-        if (!isEqual($oldSorters, this._innerSorters)) {
-            this.emit(this.constructor.EVENT_SORTERS_CHANGE, {oldSorters: $oldSorters, newSorters: this._innerSorters});
+    addSorter(sorter) {
+        const sorters = [...this.sorters];
+        this._internalApplySorter(sorter);
+        if (!isEqual(sorters, this._innerSorters)) {
+            this.emit(this.constructor.EVENT_SORTERS_CHANGE, {oldSorters: sorters, newSorters: this._innerSorters});
             this._handleAutoSorting();
         }
     }
 
 
     /**
-     * Удаляем сортировку
-     * @param {string} id Идентификатор сортировки
+     * Remove the sorter
+     * @param {string} sorterId sorters id
      *
      * @fires BaseStore#EVENT_SORTERS_CHANGE
      * */
-    removeSorter(id) {
-        const oldSorters = {...this._innerSorters};
-        delete this._innerSorters[id];
+    removeSorter(sorterId) {
+        const oldSorters = [...this.sorters];
+        remove(this._innerSorters, {id: sorterId});
         if (!isEqual(oldSorters, this._innerSorters)) {
             this.emit(this.constructor.EVENT_SORTERS_CHANGE, {oldSorters, newSorters: this._innerSorters});
             this._handleAutoSorting();
@@ -889,10 +889,9 @@ export default class BaseStore extends BaseClass {
      * Например: http://fetch.api?sort=-name,date
      *
      * @return {object}
-     * @protected
      * */
-    _serializeSortersToRequestParams() {
-        const sortersString = map(this._innerSorters, (sorter) => `${sorter.direction !== this.constructor.SORT_ASC ? '-' : ''}${sorter.property}`)
+    serializeSortersToRequestParams() {
+        const sortersString = map(this._innerSorters, (sorter) => `${sorter.direction !== BaseSorter.SORT_ASC ? '-' : ''}${sorter.property}`)
             .join(",");
 
         return !isEmpty(sortersString) ? {
@@ -907,24 +906,45 @@ export default class BaseStore extends BaseClass {
      *  http://fetch.api?filters=date>2021-10-10,...]
      *
      * @return {object}
-     * @protected
      * */
-    _serializeFiltersToRequestParams() {
+    serializeFiltersToRequestParams() {
         if (this.hasFilters) {
             return {
                 [this.filterParam]: this.filters.map(filter => filter.toString()).join(',')
             }
         }
-        return '';
+        return {};
+    }
+
+
+    serializeSearchStringToRequestParams() {
+        if (isEmpty(this._searchString)) {
+            return {};
+        }
+        return {
+            [this.initialConfig.searchParam]: this._searchString
+        }
+    }
+
+
+    /**
+     * Parse data from request params that was previously serialized by  serializeFiltersToRequestParams() method
+     * @param {Object} params
+     * */
+    parseFiltersFromRequestParams(params) {
+        if (!params[this.filterParam]) {
+            return
+        }
+        const filters = params[this.filterParam].split(',')
+        this.setFilters(filters)
     }
 
 
     /**
      * Сериализуем мета данные для запроса следующей страницы
      * @return {object} Объект для передача в request params
-     * @protected
      * */
-    _serializePaginationToRequestParams() {
+    serializePaginationToRequestParams() {
         let params = {};
         if (this.hasNextPage) {
             Object.assign(params, {

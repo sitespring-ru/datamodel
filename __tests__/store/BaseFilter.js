@@ -4,51 +4,51 @@
  * @licence Proprietary
  */
 import {expect} from "@jest/globals";
-import BaseStoreFilter from "../../src/BaseStoreFilter.js";
+import BaseFilter from "../../src/BaseFilter.js";
 
-describe('BaseStoreFilters', () => {
+describe('Base Filters testing', () => {
     test('Create from string', () => {
-        const filter = BaseStoreFilter.parseFromMixed('foo<>[1,2,4]')
-        expect(filter).toBeInstanceOf(BaseStoreFilter);
+        const filter = BaseFilter.parseFromMixed('foo<>[1,2,4]')
+        expect(filter).toBeInstanceOf(BaseFilter);
         expect(filter.id).toEqual('foo');
-        expect(filter.operator).toEqual(BaseStoreFilter.OPERATOR_NOT_IN);
+        expect(filter.operator).toEqual(BaseFilter.OPERATOR_NOT_IN);
         expect(filter.value).toEqual([1, 2, 4]);
     })
 
     test('Create from object', () => {
-        const filter = BaseStoreFilter.parseFromMixed({
+        const filter = BaseFilter.parseFromMixed({
             property: 'bar',
             value: 'baz'
         })
-        expect(filter).toBeInstanceOf(BaseStoreFilter);
+        expect(filter).toBeInstanceOf(BaseFilter);
         expect(filter.id).toEqual('bar');
-        expect(filter.operator).toEqual(BaseStoreFilter.OPERATOR_EQUAL);
+        expect(filter.operator).toEqual(BaseFilter.OPERATOR_EQUAL);
         expect(filter.value).toEqual('baz');
     })
 
     test('Create from instance', () => {
-        const instance = new BaseStoreFilter({
+        const instance = new BaseFilter({
             property: 'bar',
             value: 'baz'
         });
-        const filter = BaseStoreFilter.parseFromMixed(instance)
+        const filter = BaseFilter.parseFromMixed(instance)
         expect(filter).toEqual(instance);
     })
 
     test('String equal value', () => {
-        const filter = BaseStoreFilter.parseFromMixed('created_at="2024-10-21"')
-        expect(filter.operator).toEqual(BaseStoreFilter.OPERATOR_EQUAL);
+        const filter = BaseFilter.parseFromMixed('created_at="2024-10-21"')
+        expect(filter.operator).toEqual(BaseFilter.OPERATOR_EQUAL);
         expect(filter.value).toEqual('2024-10-21');
     })
 
     test('Range value', () => {
-        const filter = BaseStoreFilter.parseFromMixed('created_at-["2024-10-21","2024-10-31"]');
-        expect(filter.operator).toEqual(BaseStoreFilter.OPERATOR_BETWEEN);
+        const filter = BaseFilter.parseFromMixed('created_at-["2024-10-21","2024-10-31"]');
+        expect(filter.operator).toEqual(BaseFilter.OPERATOR_BETWEEN);
         expect(filter.value).toEqual(['2024-10-21', '2024-10-31']);
     })
 
     test('To string', () => {
-        const filter = new BaseStoreFilter({
+        const filter = new BaseFilter({
             property: 'is_closed',
             value: true
         });

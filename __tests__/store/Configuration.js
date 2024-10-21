@@ -21,12 +21,10 @@ describe('Configuration', () => {
         const store = new BaseStore({
             model: CustomModel,
             proxy: CustomProxy,
-            sorters: {
-                date: {
-                    property: 'date',
-                    direction: 'asc'
-                }
-            },
+            sorters: [{
+                property: 'date',
+                direction: 'asc'
+            }],
             filters: [
                 {
                     id: 'foo',
@@ -37,11 +35,9 @@ describe('Configuration', () => {
         });
         expect(store.model).toEqual(CustomModel);
         expect(store.proxy).toBeInstanceOf(CustomProxy);
-        expect(store.sorters).toEqual({
-            date: {
-                property: 'date',
-                direction: 'asc'
-            }
+        expect(store.sorters[0]).toMatchObject({
+            property: 'date',
+            direction: 'asc'
         });
         expect(store.filters[0]).toMatchObject(
             {

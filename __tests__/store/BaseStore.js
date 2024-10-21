@@ -6,6 +6,7 @@
 import BaseModel from "../../src/BaseModel";
 import BaseStore from "../../src/BaseStore";
 import {expect, jest} from '@jest/globals';
+import BaseSorter from "../../src/BaseSorter.js";
 
 
 // Эмулируем модуль целиком
@@ -274,48 +275,48 @@ describe('Работа с сортировкой', () => {
     test('Через конструктор', () => {
         /** @type {PersonsTestStore} */
         let $store = new PersonsTestStore({
-            sorters: {
-                id1: {property: 'age', direction: 'desc'}
-            }
+            sorters: [{property: 'age', direction: 'desc'}]
         });
         expect($store.sortersCount).toEqual(1);
         expect($store.hasSorters).toBeTruthy();
-        expect(() => $store.addSorter('id2', {noprop: 'invalid'})).toThrowError('Sorter`s property must be set');
+        expect(() => $store.addSorter({noprop: 'invalid'})).toThrowError('Sorter`s property must be set');
         // Напрямую через setter как в куонструторе
-        expect(() => $store.sorters = {id3: {property: 'invalid', direction: 'huyEgoZnaet'}})
-            .toThrowError("Invalid sorter's direction definition huyEgoZnaet. Expect asc or desc");
+        expect(() => $store.sorters = [{property: 'invalid', direction: 'huyEgoZnaet'}])
+            .toThrowError("Invalid sorter's direction huyEgoZnaet");
 
-        $store.dropAllSorters();
+        $store.removeAllSorters();
         expect($store.hasSorters).toBeFalsy();
         expect($store.sortersCount).toEqual(0);
     });
 
     test('Добавление метод', (done) => {
         let $store = new PersonsTestStore({hasEmitter: true});
-        $store.on($store.constructor.EVENT_SORTERS_CHANGE, ({newSorters, oldSorters}) => {
+        $store.on(BaseStore.EVENT_SORTERS_CHANGE, ({newSorters, oldSorters}) => {
             expect($store.sortersCount).toEqual(1);
-            expect(newSorters).toEqual($store.getSorters());
-            expect(newSorters).toEqual({byAge: {property: 'age', direction: 'asc'}});
+            expect(newSorters).toEqual($store.sorters);
+            expect(newSorters[0]).toMatchObject({property: 'age', direction: 'asc'});
             done();
         });
-        $store.addSorter('byAge', {property: 'age'});
+        $store.addSorter({property: 'age'});
     });
 
     test('Удаление через метод', (done) => {
         let $store = new PersonsTestStore({hasEmitter: true});
-        $store.addSorter('byAge', {property: 'age'});
-        $store.on($store.constructor.EVENT_SORTERS_CHANGE, ({newSorters, oldSorters}) => {
+        $store.addSorter({property: 'age'});
+
+        $store.on(BaseStore.EVENT_SORTERS_CHANGE, ({newSorters, oldSorters}) => {
             expect($store.sortersCount).toEqual(0);
-            expect(newSorters).toEqual({});
-            expect(oldSorters).toEqual({byAge: {property: 'age', direction: 'asc'}});
+            expect(newSorters).toEqual([]);
+            expect(oldSorters[0]).toMatchObject({property: 'age', direction: 'asc'});
             done();
         });
-        $store.removeSorter('byAge');
+
+        $store.removeSorter('age');
     });
 
     test('Сортировка на стороне сервера', async () => {
         let $store = new PersonsTestStore({fetchUrl: 'https://api.com'});
-        $store.setSorters({age: {property: 'age', direction: 'desc'}, name: {property: 'name'}});
+        $store.setSorters([{property: 'age', direction: 'desc'}, {property: 'name'}]);
         $store.doRequest = jest.fn();
         await $store.fetch();
         expect($store.doRequest).toHaveBeenCalledWith({
@@ -331,7 +332,7 @@ describe('Работа с сортировкой', () => {
         let $store = new PersonsTestStore({autoSort: true});
         $store.doRequest = jest.fn();
 
-        await $store.addSorter('byName', {property: 'name'});
+        await $store.addSorter({property: 'name'});
         expect($store.doRequest).toHaveBeenCalledWith({
             url: '/base-model',
             params: {
@@ -339,10 +340,10 @@ describe('Работа с сортировкой', () => {
             }
         });
 
-        $store.setSorters({
-            byAge: {property: 'age', direction: $store.constructor.SORT_DESC},
-            byName: {property: 'name'}
-        });
+        $store.setSorters([
+            {property: 'age', direction: BaseSorter.SORT_DESC},
+            {property: 'name'}
+        ]);
         expect($store.doRequest).toHaveBeenCalledWith({
             url: '/base-model',
             params: {
@@ -350,7 +351,7 @@ describe('Работа с сортировкой', () => {
             }
         });
 
-        $store.dropAllSorters();
+        $store.removeAllSorters();
         expect($store.doRequest).toHaveBeenCalledWith({
             url: '/base-model',
             params: {}

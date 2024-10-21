@@ -1,18 +1,18 @@
 import BaseClass from "./BaseClass.js";
-import {isEmpty, isNull, isObject, isString} from "lodash-es";
+import {isObject, isString} from "lodash-es";
 
 /**
  * @author Evgeny Shevtsov, info@sitespring.ru
  * @homepage https://sitespring.ru
  * @licence Proprietary
  *
- * @class BaseStoreFilter
+ * @class BaseFilter Represent basic filter
  * @property {String|Number} id
  * @property {String} property
  * @property {String|Array|Number|Boolean} value
  * @property {String} operator
  */
-export default class BaseStoreFilter extends BaseClass {
+export default class BaseFilter extends BaseClass {
     static OPERATOR_GREATER = '>'
     static OPERATOR_GREATER_OR_EQUAL = '>='
     static OPERATOR_LOWER = '<'
@@ -29,9 +29,7 @@ export default class BaseStoreFilter extends BaseClass {
             id: null,
             value: true,
             property: null,
-            operator: this.constructor.OPERATOR_EQUAL,
-            serializeToString: null,
-            serializeToQuery: null
+            operator: this.constructor.OPERATOR_EQUAL
         }
     }
 
@@ -56,7 +54,7 @@ export default class BaseStoreFilter extends BaseClass {
 
 
     static parseFromMixed(mixed) {
-        if (mixed instanceof BaseStoreFilter) {
+        if (mixed instanceof BaseFilter) {
             return mixed;
         }
         if (isObject(mixed)) {

@@ -18,12 +18,13 @@ describe('Search request test', () => {
             fetchUrl: 'https://api.com'
         });
         store.doRequest = jest.fn();
-        await store.search('  Foo bar   ');
+        store.setSearchString('  Foo bar   ');
+        await store.fetch();
 
         expect(store.doRequest).toHaveBeenCalledWith({
             url: 'https://api.com',
             params: {
-                search: 'Foo bar'
+                q: 'Foo bar'
             }
         });
     });
@@ -33,7 +34,8 @@ describe('Search request test', () => {
             fetchUrl: 'https://api.com'
         });
         store.doRequest = jest.fn();
-        await store.search('  ');
+        store.setSearchString('  ');
+        await store.reload();
 
         expect(store.doRequest).toHaveBeenCalledWith({
             url: 'https://api.com',
@@ -52,7 +54,8 @@ describe('Search request test', () => {
             ]
         });
         store.doRequest = jest.fn();
-        await store.search('baz');
+        store.setSearchString('baz');
+        await store.fetch();
 
         expect(store.doRequest).toHaveBeenCalledWith({
             url: 'https://api.com',
