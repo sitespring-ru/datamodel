@@ -387,12 +387,10 @@ export default class BaseModel extends BaseClass {
                     if (!this.__cachedRelations[name]) {
                         this.__cachedRelations[name] = new storeConstructorReal({
                             model: modelConstructor,
-                            filters: {
-                                id: {
-                                    property: foreignKey,
-                                    value: this.getId()
-                                }
-                            }
+                            filters: [{
+                                property: foreignKey,
+                                value: this.getId()
+                            }]
                         });
                     }
                     return this.__cachedRelations[name];

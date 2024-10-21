@@ -173,21 +173,17 @@ describe('Работа с фильтрами', () => {
     test('Добавление и удаление через конструктор', () => {
         /** @type {PersonsTestStore} */
         let $store = new PersonsTestStore({
-            filters: {
-                byAge: {property: 'age'}
-            }
+            filters: [{property: 'age'}]
         });
-        expect($store.getFilters()).toEqual({
-            byAge: {property: 'age', operator: "=", value: true}
-        });
+        expect($store.filters[0]).toMatchObject({property: 'age', operator: "=", value: true});
         expect($store.hasFilters).toBeTruthy();
         expect($store.filtersCount).toEqual(1);
 
         // Напрямую через setter как в куонструторе
-        expect(() => $store.filters = {id3: {direction: 'huyEgoZnaet'}})
+        expect(() => $store.filters = [{value: 'huyEgoZnaet'}])
             .toThrowError('Filter`s property must be set');
 
-        $store.dropAllFilters();
+        $store.removeAllFilters();
         expect($store.hasFilters).toBeFalsy();
         expect($store.filtersCount).toEqual(0);
     });
@@ -197,43 +193,46 @@ describe('Работа с фильтрами', () => {
         $store.on($store.constructor.EVENT_FILTERS_CHANGE, ({newFilters}) => {
             expect($store.hasFilters).toBeTruthy();
             expect($store.filtersCount).toEqual(1);
-            expect(newFilters).toEqual({
-                id1: {property: 'age', operator: "=", value: true}
+            expect(newFilters[0]).toMatchObject({
+                id: 'id1',
+                property: 'age'
+                , operator: "="
+                , value: true
             });
             done();
         });
-        $store.addFilter('id1', {property: 'age'});
+        $store.addFilter({id: 'id1', property: 'age'});
     });
 
 
     test('Удаление через метод', (done) => {
         let $store = new PersonsTestStore({hasEmitter: true});
-        $store.addFilter('byAge', {property: 'age'});
+        $store.addFilter({property: 'age'});
         $store.on($store.constructor.EVENT_FILTERS_CHANGE, ({newFilters, oldFilters}) => {
             expect($store.filtersCount).toEqual(0);
-            expect(newFilters).toEqual({});
-            expect(oldFilters).toEqual({byAge: {property: 'age', operator: "=", value: true}});
+            expect(newFilters).toEqual([]);
+            expect(oldFilters[0]).toMatchObject({property: 'age', operator: "=", value: true});
             done();
         });
         // Не вызовет события
         $store.removeFilter('notExists');
         // Вызовет событие
-        $store.removeFilter('byAge');
+        $store.removeFilter('age');
     });
 
     test('Фильтрация на стороне сервера', async () => {
         /** @type {PersonsTestStore} */
         let $store = new PersonsTestStore({fetchUrl: 'https://api.com'});
-        $store.setFilters({
-            byAge: {property: 'age', value: 16, operator: '>='},
-            byName: {property: 'name'}
-        });
+        $store.setFilters([
+            {property: 'age', value: 16, operator: '>='},
+            {property: 'name'}
+        ]);
         $store.doRequest = jest.fn();
         await $store.fetch();
         expect($store.doRequest).toHaveBeenCalledWith({
             url: 'https://api.com',
             params: {
-                filter: "[{\"property\":\"age\",\"value\":16,\"operator\":\">=\"},{\"property\":\"name\",\"operator\":\"=\",\"value\":true}]"
+                filter: "age>=16,name=true"
             }
         });
     });
@@ -243,26 +242,26 @@ describe('Работа с фильтрами', () => {
         let $store = new PersonsTestStore({autoFilter: true});
         $store.doRequest = jest.fn();
 
-        await $store.addFilter('byName', {property: 'name'});
+        await $store.addFilter({property: 'name'});
         expect($store.doRequest).toHaveBeenCalledWith({
             url: '/base-model',
             params: {
-                filter: "[{\"property\":\"name\",\"operator\":\"=\",\"value\":true}]"
+                filter: "name=true"
             }
         });
 
-        $store.setFilters({
-            byAge: {property: 'age', value: 16, operator: '>='},
-            byName: {property: 'name'}
-        });
+        $store.setFilters([
+            {property: 'age', value: 16, operator: '>='},
+            {property: 'name'}
+        ]);
         expect($store.doRequest).toHaveBeenCalledWith({
             url: '/base-model',
             params: {
-                filter: "[{\"property\":\"age\",\"value\":16,\"operator\":\">=\"},{\"property\":\"name\",\"operator\":\"=\",\"value\":true}]"
+                filter: "age>=16,name=true"
             }
         });
 
-        $store.dropAllFilters();
+        $store.removeAllFilters();
         expect($store.doRequest).toHaveBeenCalledWith({
             url: '/base-model',
             params: {}

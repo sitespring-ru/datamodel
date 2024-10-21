@@ -2,6 +2,7 @@ import {each, find, get, isEmpty, isEqual, isFunction, isMatch, map, merge, remo
 import BaseClass from "./BaseClass.js";
 import BaseModel from "./BaseModel.js";
 import BaseProxy from "./BaseProxy.js";
+import BaseStoreFilter from "./BaseStoreFilter.js";
 
 /**
  * The Base Store functionality class
@@ -61,8 +62,8 @@ export default class BaseStore extends BaseClass {
      * Событие изменения фильтров
      * @event BaseStore#EVENT_FILTERS_CHANGE
      * @param {{
-     * oldFilters: Object.<String,FilterDefinition>,
-     * newFilters: Object.<String,FilterDefinition>
+     * oldFilters: Object.<String,BaseStoreFilter>,
+     * newFilters: Object.<String,BaseStoreFilter>
      * }} data
      * */
     static EVENT_FILTERS_CHANGE = 'filterschange';
@@ -117,11 +118,11 @@ export default class BaseStore extends BaseClass {
         this._innerSorters = {};
 
         /**
-         * Внутренняя карта фильтров по id
-         * @type {Object.<String,FilterDefinition>}
+         * Filters stack
+         * @type {Array.<BaseStoreFilter>}
          * @private
          * */
-        this._innerFilters = {};
+        this._innerFilters = [];
 
         /**
          * Были ли получены данные с сервера
@@ -190,8 +191,12 @@ export default class BaseStore extends BaseClass {
         this.setFilters($filters);
     }
 
+    /**
+     * @getter
+     * @return {Array.<BaseStoreFilter>}
+     * */
     get filters() {
-        return this.getFilters();
+        return this._innerFilters;
     }
 
     /**
@@ -661,35 +666,27 @@ export default class BaseStore extends BaseClass {
 
 
     /**
-     * Логика обработки добавления Фильтра
-     * @param {string} $id Идентификатор фильтра
-     * @param {FilterDefinition} $filter
+     * Internal filter creation
      * @return void;
+     * @param {String|Object|BaseStoreFilter} filterDefs
      * */
-    _internalApplyFilter($id, $filter) {
-        if (!$filter.property) {
-            throw new Error('Filter`s property must be set');
+    _internalApplyFilter(filterDefs) {
+        const filter = BaseStoreFilter.parseFromMixed(filterDefs)
+        if (filter && this.hasFilter(filter.id)) {
+            remove(this._innerFilters, {id: filter.id}); // delete filter with same id without triggering events
         }
-        if (!$filter.operator || ['>', '<', '=', 'like', '>=', '<=', 'in', 'not in', 'between'].indexOf($filter.operator) < 0) {
-            $filter.operator = '=';
-        }
-        if (!$filter.value) {
-            $filter.value = true;
-        }
-        this._innerFilters[$id] = $filter;
+        this._innerFilters.push(filter);
     }
 
 
     /**
-     * Добавляем фильтр
-     * @param {string} $id Идентификатор фильтра
-     * @param {FilterDefinition} $filter
-     *
+     * Add filter to store
      * @fires BaseStore#EVENT_FILTERS_CHANGE
+     * @param args
      * */
-    addFilter($id, $filter) {
+    addFilter(...args) {
         const $oldFilters = {...this._innerFilters};
-        this._internalApplyFilter($id, $filter);
+        this._internalApplyFilter(...args);
         if (!isEqual($oldFilters, this._innerFilters)) {
             this.emit(this.constructor.EVENT_FILTERS_CHANGE, {oldFilters: $oldFilters, newFilters: this._innerFilters});
             this._handleAutoFiltering();
@@ -708,15 +705,16 @@ export default class BaseStore extends BaseClass {
 
 
     /**
-     * Изменяем весь стек фильтров одним вызовом
-     * @param {Object.<string,FilterDefinition>} $filters
-     *
+     * Apply filters to store by batch in one call
+     * @param {Array.<BaseStoreFilter>} filters
+     * @return void
      * @fires BaseStore#EVENT_FILTERS_CHANGE
      * */
-    setFilters($filters) {
-        const oldFilters = {...this._innerFilters};
-        this._innerFilters = {};
-        each($filters, (filter, id) => this._internalApplyFilter(id, filter));
+    setFilters(filters = []) {
+        const oldFilters = this._innerFilters; // save current filters stack
+        this._innerFilters = []; // drop all filters
+        filters.forEach(filter => this._internalApplyFilter(filter))
+
         if (!isEqual(oldFilters, this._innerFilters)) {
             this.emit(this.constructor.EVENT_FILTERS_CHANGE, {oldFilters, newFilters: this._innerFilters});
             this._handleAutoFiltering();
@@ -725,27 +723,39 @@ export default class BaseStore extends BaseClass {
 
 
     /**
-     * Удаляем фильтр
-     * @param {string} id Идентификатор фильтра
-     *
+     * Remove filter by id
+     * @param {string} filterId
      * @fires BaseStore#EVENT_FILTERS_CHANGE
      * */
-    removeFilter(id) {
-        const $oldFilters = {...this._innerFilters};
-        delete this._innerFilters[id];
-        if (!isEqual($oldFilters, this._innerFilters)) {
-            this.emit(this.constructor.EVENT_FILTERS_CHANGE, {oldFilters: $oldFilters, newFilters: this._innerFilters});
+    removeFilter(filterId) {
+        const oldFilters = this._innerFilters;
+        this._innerFilters = remove(this._innerFilters, {id: filterId});
+        if (!isEqual(oldFilters, this._innerFilters)) {
+            this.emit(this.constructor.EVENT_FILTERS_CHANGE, {oldFilters: oldFilters, newFilters: this._innerFilters});
             this._handleAutoFiltering();
         }
     }
 
 
     /**
-     * Статический геттер для совместимости
-     * @return {Object.<String,FilterDefinition>}
+     * Detele all filters
      * */
-    getFilters() {
-        return this._innerFilters;
+    removeAllFilters() {
+        if (this.hasFilters) {
+            this._innerFilters = [];
+            this.emit(this.constructor.EVENT_FILTERS_CHANGE, {oldFilters: this._innerFilters, newFilters: []});
+            this._handleAutoFiltering();
+        }
+    }
+
+
+    /**
+     * Find filter or return null
+     * @param {String|Number} filterId
+     * @return {?BaseStoreFilter}
+     * */
+    getFilter(filterId) {
+        return find(this._innerFilters, {id: filterId})
     }
 
 
@@ -759,10 +769,12 @@ export default class BaseStore extends BaseClass {
 
 
     /**
-     * Сбросить все фильтры
+     * Check if filter exists
+     * @param {String|Number} filterId
+     * @return boolean
      * */
-    dropAllFilters() {
-        this.setFilters({});
+    hasFilter(filterId) {
+        return !!this.getFilter(filterId)
     }
 
 
@@ -890,20 +902,20 @@ export default class BaseStore extends BaseClass {
 
 
     /**
-     * Сериализация Фильтров в параметр запроса
-     * Например: http://fetch.api?filters=[{"property":"date","operator":">","value":"2021-10-10"},...]
+     * Serialize filters to request param object
+     * @example
+     *  http://fetch.api?filters=date>2021-10-10,...]
      *
      * @return {object}
      * @protected
      * */
     _serializeFiltersToRequestParams() {
-        let filters = {};
         if (this.hasFilters) {
-            Object.assign(filters, {
-                [this.initialConfig.filterParam]: JSON.stringify(values(this._innerFilters))
-            })
+            return {
+                [this.filterParam]: this.filters.map(filter => filter.toString()).join(',')
+            }
         }
-        return filters;
+        return '';
     }
 
 

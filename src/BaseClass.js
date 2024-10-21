@@ -181,7 +181,7 @@ export default class BaseClass {
     __createInitialConfigMagicProps() {
         Object.keys(this.defaults).forEach((attrName) => {
             // Property alreasy exists
-            if (typeof this[attrName] !== "undefined") {
+            if (attrName in this) {
                 return;
             }
 

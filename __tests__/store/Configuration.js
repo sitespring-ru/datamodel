@@ -27,12 +27,13 @@ describe('Configuration', () => {
                     direction: 'asc'
                 }
             },
-            filters: {
-                foo: {
+            filters: [
+                {
+                    id: 'foo',
                     property: 'bar',
                     value: 'baz'
                 }
-            }
+            ]
         });
         expect(store.model).toEqual(CustomModel);
         expect(store.proxy).toBeInstanceOf(CustomProxy);
@@ -42,13 +43,13 @@ describe('Configuration', () => {
                 direction: 'asc'
             }
         });
-        expect(store.filters).toEqual({
-            foo: {
+        expect(store.filters[0]).toMatchObject(
+            {
+                id: 'foo',
                 property: 'bar',
                 operator: '=',
                 value: 'baz'
-            }
-        })
+            })
     })
 
     test('Set proxy', () => {

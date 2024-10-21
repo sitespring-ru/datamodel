@@ -46,10 +46,10 @@ describe('Search request test', () => {
         const store = new BaseStore({
             fetchUrl: 'https://api.com',
             searchParam: 'queryText',
-            filters: {
-                byAge: {property: 'age', value: 16, operator: '>='},
-                byName: {property: 'name'}
-            }
+            filters: [
+                {property: 'age', value: 16, operator: '>='},
+                {property: 'name'}
+            ]
         });
         store.doRequest = jest.fn();
         await store.search('baz');
@@ -58,7 +58,7 @@ describe('Search request test', () => {
             url: 'https://api.com',
             params: {
                 queryText: 'baz',
-                filter: "[{\"property\":\"age\",\"value\":16,\"operator\":\">=\"},{\"property\":\"name\",\"operator\":\"=\",\"value\":true}]"
+                filter: "age>=16,name=true"
             }
         });
     });
