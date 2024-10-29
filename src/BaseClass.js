@@ -51,7 +51,7 @@ export default class BaseClass {
     /**
      * Хелпер для создания экземпляра класса
      * @param {?Object|Function} [defs] Объект содержащий ключ class который определяет конструктор или сам конструктор
-     * @return {BaseClass|BaseStore|BaseProxy|BaseModel|Object} экземпляр класса
+     * @return {BaseClass} экземпляр класса
      * */
     static createInstance(defs = {}) {
         // Handle case when defs is constructor directly

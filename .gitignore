@@ -3,3 +3,6 @@ node_modules
 
 #npm packs
 sitespring-datamodel-*.tgz
+
+# build dir
+lib

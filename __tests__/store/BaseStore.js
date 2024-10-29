@@ -3,10 +3,10 @@
  *
  * @licence Proprietary
  */
-import BaseModel from "../../src/BaseModel";
-import BaseStore from "../../src/BaseStore";
+import Model from "../../src/Model.js";
+import Store from "../../src/Store.js";
 import {expect, jest} from '@jest/globals';
-import BaseSorter from "../../src/BaseSorter.js";
+import Sorter from "../../src/Sorter.js";
 
 
 // Эмулируем модуль целиком
@@ -15,7 +15,7 @@ jest.mock('axios');
 // @see https://stackoverflow.com/questions/51393952/mock-inner-axios-create
 // axios.create.mockReturnThis();
 
-class PersonTestModel extends BaseModel {
+class PersonTestModel extends Model {
     get fields() {
         return {
             ...super.fields,
@@ -25,7 +25,7 @@ class PersonTestModel extends BaseModel {
     }
 }
 
-class PersonsTestStore extends BaseStore {
+class PersonsTestStore extends Store {
     get model() {
         return PersonTestModel;
     }
@@ -72,7 +72,7 @@ describe('Работа с моделями', () => {
         $store.loadModels([{name: 'xoxa1', age: 37}, {name: 'xoxa2', age: 37}, {name: 'xoxa3', age: 37}]);
 
         expect($store.isEmpty).toBeFalsy();
-        expect($store.pagination.perPage).toEqual(2);
+        expect($store.pagination.pageSize).toEqual(2);
         expect($store.pagination.pageCount).toEqual(2);
 
         $store.emit = jest.fn();
@@ -81,13 +81,12 @@ describe('Работа с моделями', () => {
 
         $store.clear();
         expect($store.isEmpty).toBeTruthy();
-        expect($store.pagination.perPage).toEqual(2);
+        expect($store.pagination.pageSize).toEqual(2);
         expect($store.pagination.pageCount).toEqual(1);
 
-        expect($store.emit).toBeCalledTimes(3);
+        expect($store.emit).toBeCalledTimes(2);
         expect($store.emit).toHaveBeenNthCalledWith(1, $store.constructor.EVENT_MODELS_CHANGE, modelsToRemove);
         expect($store.emit).toHaveBeenNthCalledWith(2, $store.constructor.EVENT_MODELS_REMOVED, modelsToRemove);
-        expect($store.emit).toHaveBeenNthCalledWith(3, $store.constructor.EVENT_PAGINATION_CHANGE, {oldPagination, newPagination: $store.pagination});
     });
 
 
@@ -291,7 +290,7 @@ describe('Работа с сортировкой', () => {
 
     test('Добавление метод', (done) => {
         let $store = new PersonsTestStore({hasEmitter: true});
-        $store.on(BaseStore.EVENT_SORTERS_CHANGE, ({newSorters, oldSorters}) => {
+        $store.on(Store.EVENT_SORTERS_CHANGE, ({newSorters, oldSorters}) => {
             expect($store.sortersCount).toEqual(1);
             expect(newSorters).toEqual($store.sorters);
             expect(newSorters[0]).toMatchObject({property: 'age', direction: 'asc'});
@@ -304,7 +303,7 @@ describe('Работа с сортировкой', () => {
         let $store = new PersonsTestStore({hasEmitter: true});
         $store.addSorter({property: 'age'});
 
-        $store.on(BaseStore.EVENT_SORTERS_CHANGE, ({newSorters, oldSorters}) => {
+        $store.on(Store.EVENT_SORTERS_CHANGE, ({newSorters, oldSorters}) => {
             expect($store.sortersCount).toEqual(0);
             expect(newSorters).toEqual([]);
             expect(oldSorters[0]).toMatchObject({property: 'age', direction: 'asc'});
@@ -341,7 +340,7 @@ describe('Работа с сортировкой', () => {
         });
 
         $store.setSorters([
-            {property: 'age', direction: BaseSorter.SORT_DESC},
+            {property: 'age', direction: Sorter.SORT_DESC},
             {property: 'name'}
         ]);
         expect($store.doRequest).toHaveBeenCalledWith({
@@ -374,8 +373,8 @@ describe('Пагинация', () => {
         const $store = new PersonsTestStore({isPaginated: true, pageSize: 2});
         $store.loadModels(mockModels);
         expect($store.pagination).toEqual({
-            currentPage: 3,
-            perPage: 2,
+            currentPage: 1,
+            pageSize: 2,
             totalCount: 5,
             pageCount: 3
         });
@@ -383,39 +382,13 @@ describe('Пагинация', () => {
 
     test('Проверка свойства', () => {
         const $store = new PersonsTestStore({isPaginated: true});
-        expect($store.hasPagination).toBeTruthy();
+        expect($store.isPaginated).toBeTruthy();
 
         $store.isPaginated = false;
-        expect($store.hasPagination).toBeFalsy();
+        expect($store.isPaginated).toBeFalsy();
     });
 
 
-    test('Изменение размера страницы', (done) => {
-        /** @type {PersonsTestStore} */
-        const $store = new PersonsTestStore({isPaginated: true, pageSize: 2, hasEmitter: true});
-        $store.loadModels(mockModels);
-        expect($store.pageNumber).toEqual(3);
-
-        $store.on($store.constructor.EVENT_PAGINATION_CHANGE, ({oldPagination, newPagination}) => {
-            expect(oldPagination).toEqual({
-                currentPage: 3,
-                perPage: 2,
-                totalCount: 5,
-                pageCount: 3
-            });
-            expect(newPagination).toEqual({
-                currentPage: 2,
-                perPage: 3,
-                totalCount: 5,
-                pageCount: 2
-            });
-            expect($store.pageNumber).toEqual(2);
-            // expect(modelsToData($store.models)).toEqual(mockModels.slice(3, 6));
-            done();
-        });
-
-        $store.setPageSize(3);
-    });
 
     test('Получение с сервера', async () => {
         const $store = new PersonsTestStore({isPaginated: true, pageSize: 2});
@@ -424,15 +397,13 @@ describe('Пагинация', () => {
             data: mockModels.slice(2, 4),
             _meta: {
                 currentPage: 1,
-                perPage: 2,
+                pageSize: 2,
                 totalCount: 5,
                 pageCount: 3
             }
         });
-        // Хранилище еще не загружалось удаленно
         expect($store.isFetched).toBeFalsy();
-        // Здесь хранилище еще не было загружено, поэтому true
-        expect($store.hasNextPage).toBeTruthy();
+        expect($store.hasNextPage).toBeFalsy(); // Not fetched yet
 
         await $store.fetch();
         expect($store.doRequest).toHaveBeenCalledWith({url: '/base-model', params: {limit: 2, page: 1}});
@@ -456,9 +427,9 @@ describe('Пагинация', () => {
         expect($store.hasNextPage).toBeFalsy();
 
         $store.clear();
-        expect($store.pageNumber).toEqual(1);
+        expect($store.pagination.currentPage).toEqual(1);
         expect($store.isEmpty).toBeTruthy();
-        expect($store.hasNextPage).toBeTruthy();
+        expect($store.hasNextPage).toBeFalsy();
     });
 
 

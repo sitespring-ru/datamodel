@@ -1,15 +1,17 @@
 import {each, find, get, isEmpty, isEqual, isFunction, isMatch, map, merge, remove, size, sumBy, unset} from "lodash-es";
 import BaseClass from "./BaseClass.js";
-import BaseModel from "./BaseModel.js";
-import BaseProxy from "./BaseProxy.js";
-import BaseFilter from "./BaseFilter.js";
-import BaseSorter from "./BaseSorter.js";
+import Model from "./Model.js";
+import Proxy from "./Proxy.js";
+import Filter from "./Filter.js";
+import Sorter from "./Sorter.js";
+import Pagination from "./Pagination.js";
+
 
 /**
  * The Base Store functionality class
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
  *
- * @property {BaseModel} model The model this store is operating
+ * @property {Model} model The model this store is operating
  * @property {Boolean} isPaginated Стоит ли обрабатывать хранилище по странично
  * @property {String} fetchUrl Url для получения данных с удаленного сервера
  * @property {Number} pageSize Limit models per page, 20 by default
@@ -21,59 +23,44 @@ import BaseSorter from "./BaseSorter.js";
  * @property {String} searchParam The name of query param with search string, default is 'q'
  * @property {Object} modelDefaultConfig The data to be loaded to model during creation method default {}
  */
-export default class BaseStore extends BaseClass {
-    /**
-     * @typedef {object} PaginationDefinition Метаданные Пагинации
-     * @property {number} pageCount Количество страниц
-     * @property {number} currentPage Текущая полученная страница
-     * @property {number} perPage Размер страницы
-     * @property {number} totalCount Общее количество Моделей
-     * */
-
+export default class Store extends BaseClass {
     /**
      * Событие изменения сортировок
-     * @event BaseStore#EVENT_SORTERS_CHANGE
+     * @event Store#EVENT_SORTERS_CHANGE
      * @param {{
-     * oldSorters: Array.<BaseSorter>,
-     * newSorters: Array.<BaseSorter>
+     * oldSorters: Array.<Sorter>,
+     * newSorters: Array.<Sorter>
      *     }} data
      * */
     static EVENT_SORTERS_CHANGE = 'sorterschange';
 
     /**
      * Событие изменения фильтров
-     * @event BaseStore#EVENT_FILTERS_CHANGE
+     * @event Store#EVENT_FILTERS_CHANGE
      * @param {{
-     * oldFilters: Array.<BaseFilter>,
-     * newFilters: Array.<BaseFilter>
+     * oldFilters: Array.<Filter>,
+     * newFilters: Array.<Filter>
      * }} data
      * */
     static EVENT_FILTERS_CHANGE = 'filterschange';
 
     /**
      * Событие изменения стека моделей
-     * @event BaseStore#EVENT_MODELS_CHANGE
-     * @param {BaseModel[]} $models
+     * @event Store#EVENT_MODELS_CHANGE
+     * @param {Model[]} $models
      * */
     static EVENT_MODELS_CHANGE = 'modelschange';
 
     /**
      * Событие удаления моделей из Хранилища
-     * @event BaseStore#EVENT_MODELS_REMOVED
-     * @param {BaseModel[]} $models
+     * @event Store#EVENT_MODELS_REMOVED
+     * @param {Model[]} $models
      * */
     static EVENT_MODELS_REMOVED = 'modelsremoved';
 
     /**
-     * Событие изменения данных пагинации
-     * @event BaseStore#EVENT_PAGINATION_CHANGE
-     * @param {PaginationDefinition} $pagination
-     * */
-    static EVENT_PAGINATION_CHANGE = 'paginationchange';
-
-    /**
      * Событие получения данных с сервера
-     * @event BaseStore#EVENT_FETCH
+     * @event Store#EVENT_FETCH
      * @param {AttributesMap[]} $data Объект данных
      * */
     static EVENT_FETCH = 'fetch';
@@ -87,21 +74,21 @@ export default class BaseStore extends BaseClass {
 
         /**
          * Стек хранимый моделей
-         * @type {BaseModel[]}
+         * @type {Model[]}
          * @private
          * */
         this._innerModels = [];
 
         /**
          * Внутренняя карта сортировок по id
-         * @type {Array.<BaseSorter>}
+         * @type {Array.<Sorter>}
          * @private
          * */
         this._innerSorters = [];
 
         /**
          * Filters stack
-         * @type {Array.<BaseFilter>}
+         * @type {Array.<Filter>}
          * @private
          * */
         this._innerFilters = [];
@@ -114,7 +101,7 @@ export default class BaseStore extends BaseClass {
 
 
         /**
-         * @type {?PaginationDefinition}
+         * @type {?Pagination}
          * @private
          * */
         this._pagination = null;
@@ -148,7 +135,8 @@ export default class BaseStore extends BaseClass {
             , sortParam: 'sort'
             , searchParam: 'q'
             , modelDefaults: {}
-            , model: BaseModel
+            , model: Model
+            , proxy: Proxy
         };
     }
 
@@ -181,7 +169,7 @@ export default class BaseStore extends BaseClass {
 
     /**
      * @getter
-     * @return {Array.<BaseFilter>}
+     * @return {Array.<Filter>}
      * */
     get filters() {
         return this._innerFilters;
@@ -272,13 +260,13 @@ export default class BaseStore extends BaseClass {
         if (!this.isPaginated) {
             return false;
         }
-        return !this._isFetched || this.pagination.currentPage < this.pagination.pageCount;
+        return this.pagination.hasNextPage;
     };
 
 
     /**
      * Текущий стек моделей
-     * @return {BaseModel[]}
+     * @return {Model[]}
      * */
     get models() {
         return this._innerModels;
@@ -286,74 +274,39 @@ export default class BaseStore extends BaseClass {
 
 
     /**
-     * Номер текущей страницы
-     * @return {Integer}
-     * */
-    get pageNumber() {
-        return this.pagination.currentPage;
-    }
-
-    /**
-     * Задаем номер страницы
-     * @param {Integer} $number
-     * */
-    set pageNumber($number) {
-        this.pagination.currentPage = $number;
-    }
-
-
-    /**
-     * @return {PaginationDefinition}
+     * @return {?Pagination}
      * */
     get pagination() {
-        if (!this._pagination) {
-            this._pagination = this._calculatePagination();
+        if (this.isPaginated && !this._pagination) {
+            this._pagination = new Pagination({
+                totalCount: this.count,
+                pageSize: this.pageSize,
+                currentPage: 1,
+                pageCount: Math.ceil(this.count / this.pageSize) || 1
+            })
         }
         return this._pagination;
     }
 
-
-    /**
-     * Задаем новое значение пагинации
-     * @param {PaginationDefinition} $pagination
-     *
-     * @fires BaseStore#EVENT_PAGINATION_CHANGE
-     * */
-    set pagination($pagination) {
-        const oldPagination = {...this.pagination};
-        Object.assign(this._pagination, $pagination);
-        if (!isEqual(oldPagination, this._pagination)) {
-            this.emit(this.constructor.EVENT_PAGINATION_CHANGE, {oldPagination, newPagination: this._pagination});
+    set pagination(val) {
+        if (val instanceof Pagination) {
+            this._pagination = val;
+        } else if (!val) {
+            this._pagination = null;
+        } else {
+            throw new Error('Expect instance of Pagination');
         }
     }
 
 
     /**
-     * @return {boolean} Поддерживает ли Хранилище пагинацию
-     * @readonly
-     * */
-    get hasPagination() {
-        return !!this.isPaginated;
-    }
-
-
-    /**
-     * Proxy configuration
-     * @return {Object}
-     * */
-    get proxyConfig() {
-        return this.initialConfig.proxy || BaseProxy;
-    };
-
-
-    /**
      * Создание прокси для запросов в контексте Модели
-     * @return {BaseProxy} Созданный экземпляр Прокси
+     * @return {Proxy} Созданный экземпляр Прокси
      * */
     get proxy() {
         if (!this.__innerProxy) {
             // Берем конфигурацию Прокси переданную в конструктор
-            this.__innerProxy = this.configureProxy(this.proxyConfig);
+            this.__innerProxy = this.configureProxy(this.initialConfig.proxy);
         }
         return this.__innerProxy;
     }
@@ -364,14 +317,14 @@ export default class BaseStore extends BaseClass {
 
 
     configureProxy(config) {
-        if (config instanceof BaseProxy) {
+        if (config instanceof Proxy) {
             return config;
         }
         if (typeof config === 'function') {
             return new config();
         }
         if (typeof config === 'object') {
-            const ct = config.type || BaseProxy;
+            const ct = config.type || Proxy;
             unset(config, 'type');
             return new ct(config);
         }
@@ -387,28 +340,14 @@ export default class BaseStore extends BaseClass {
 
 
     /**
-     * Задаем новое значение размера страницы
-     * @param {Integer} $value
-     * */
-    setPageSize($value) {
-        this.pageSize = $value;
-        this._refreshPagination();
-    }
-
-
-    /**
      * Добавление (обновление) Модели в Хранилище
-     * @param {BaseModel|object} modelOrAttrs Модель или аттрибуты для создания
-     * @return {BaseModel} Экземпляр добавленной  модели
+     * @param {Model|object} modelOrAttrs Модель или аттрибуты для создания
+     * @return {Model} Экземпляр добавленной  модели
      *
-     * @fires BaseStore#EVENT_MODELS_CHANGE
+     * @fires Store#EVENT_MODELS_CHANGE
      * */
     loadModel(modelOrAttrs) {
         const {model} = this.__internalAdd(modelOrAttrs);
-        if (this.isPaginated) {
-            this._refreshPagination();
-        }
-
         this.emit(this.constructor.EVENT_MODELS_CHANGE, [model]);
         return model;
     }
@@ -417,11 +356,11 @@ export default class BaseStore extends BaseClass {
     /**
      * Добавление моделей в Хранилище пачкой
      * Смысл в том чтобы пересчитать пагинацию и вызвать события после всех добавлений один раз
-     * @param {BaseModel[]|object[]} modelsOrAttrs
+     * @param {Model[]|object[]} modelsOrAttrs
      * @param {{isPhantom:Boolean}} options
-     * @return {BaseModel[]} Стек добавленных и обновленных Моделей
+     * @return {Model[]} Стек добавленных и обновленных Моделей
      *
-     * @fires BaseStore#EVENT_MODELS_CHANGE
+     * @fires Store#EVENT_MODELS_CHANGE
      * */
     loadModels(modelsOrAttrs, options = {}) {
         let handledModels = [];
@@ -433,12 +372,6 @@ export default class BaseStore extends BaseClass {
                 hasCreated = true;
             }
         });
-        if (hasCreated) {
-            // Обновляем пагинацию только если были добавлены Модели
-            if (this.isPaginated) {
-                this._refreshPagination();
-            }
-        }
 
         this.emit(this.constructor.EVENT_MODELS_CHANGE, handledModels);
         return handledModels;
@@ -447,13 +380,13 @@ export default class BaseStore extends BaseClass {
 
     /**
      * Добавляем Модель в хранилище без обновления пагинации, вызова события и пр.
-     * @param {BaseModel|object} modelOrAttrs Модель или аттрибуты для создания
+     * @param {Model|object} modelOrAttrs Модель или аттрибуты для создания
      * @param {{isPhantom:Boolean}} options
-     * @return {{model:BaseModel,isCreated:boolean}} Экземпляр добавленной или обновленной  модели + флаг добавления
+     * @return {{model:Model,isCreated:boolean}} Экземпляр добавленной или обновленной  модели + флаг добавления
      * @private
      * */
     __internalAdd(modelOrAttrs, options = {}) {
-        /** @type {BaseModel} */
+        /** @type {Model} */
         let model;
         const {isPhantom} = options;
         // Был передан объект аттрибутов
@@ -483,7 +416,7 @@ export default class BaseStore extends BaseClass {
 
     /**
      * Удаление Модели из Хранилища по его ID
-     * @param {BaseModel} model
+     * @param {Model} model
      * @return {Boolean} true если модель была удалена
      * */
     remove(model) {
@@ -496,19 +429,14 @@ export default class BaseStore extends BaseClass {
      * @param {Function} predicate
      * @return {Number} Количество удаленных моделей
      *
-     * @fires BaseStore#EVENT_MODELS_CHANGE
-     * @fires BaseStore#EVENT_MODELS_REMOVED
+     * @fires Store#EVENT_MODELS_CHANGE
+     * @fires Store#EVENT_MODELS_REMOVED
      * */
     removeBy(predicate) {
         const removeModels = remove(this._innerModels, predicate);
         if (removeModels.length) {
             this.emit(this.constructor.EVENT_MODELS_CHANGE, removeModels);
             this.emit(this.constructor.EVENT_MODELS_REMOVED, removeModels);
-
-            // Обновляем пагинацию только если были добавлены Модели
-            if (this.isPaginated) {
-                this._refreshPagination();
-            }
         }
         return removeModels.length;
     }
@@ -531,7 +459,7 @@ export default class BaseStore extends BaseClass {
     /**
      * Хелпер для поиска Модели по Id
      * @param {string|number} id
-     * @return {BaseModel|null}
+     * @return {Model|null}
      * */
     findById(id) {
         return find(this._innerModels, (model) => {
@@ -542,8 +470,8 @@ export default class BaseStore extends BaseClass {
 
     /**
      * Очистить Хранилище: сбрасываются текущие состояния загруженных данных
-     * @fires BaseStore#EVENT_MODELS_CHANGE
-     * @fires BaseStore#EVENT_MODELS_REMOVED
+     * @fires Store#EVENT_MODELS_CHANGE
+     * @fires Store#EVENT_MODELS_REMOVED
      * */
     clear() {
         this._isFetched = false;
@@ -554,7 +482,7 @@ export default class BaseStore extends BaseClass {
         }
 
         if (this.isPaginated) {
-            this._refreshPagination()
+            this._pagination = null;
         }
     }
 
@@ -572,24 +500,24 @@ export default class BaseStore extends BaseClass {
      * @param {?object} config Дополнительный конфиг для запроса
      * @return {Promise}
      *
-     * @fires BaseStore#EVENT_FETCH
+     * @fires Store#EVENT_FETCH
      * */
     async fetch(config = {}) {
         const searchParams = this.serializeSearchStringToRequestParams();
         const filtersParams = this.serializeFiltersToRequestParams();
         const sortersParams = this.serializeSortersToRequestParams();
-        const pageParams = this.isPaginated ? this.serializePaginationToRequestParams() : {};
+        const pageParams = this.isPaginated ? this.serializePagingToRequestParams() : {};
         const params = {...searchParams, ...filtersParams, ...sortersParams, ...pageParams};
         const url = this.buildFetchUrl();
         // lodash merge to do deep merging
         const requestConfig = merge({}, {url, params}, {...config});
         try {
             const responseData = await this.doRequest(requestConfig);
-            const models = this._parseModelsFromResponseData(responseData);
+            const models = this.parseModelsFromResponseData(responseData);
             this.loadModels(models);
 
             if (this.isPaginated) {
-                this.pagination = this._parsePaginationFromResponse(responseData);
+                this.pagination = this.parsePagingFromResponse(responseData);
             }
 
             // сохраняем флаг о том что запрос был успешно сделан
@@ -630,7 +558,7 @@ export default class BaseStore extends BaseClass {
      * Save string for search requests
      * @param {String} value The query string
      * */
-    async setSearchString(value) {
+    setSearchString(value) {
         this._searchString = value.trim();
     }
 
@@ -638,9 +566,8 @@ export default class BaseStore extends BaseClass {
     /**
      * @param {object} data Объект ответа от Прокси
      * @return {Object[]}
-     * @protected
      * */
-    _parseModelsFromResponseData(data) {
+    parseModelsFromResponseData(data) {
         // Предполагается что данные передаются в конверте data при пагинации или сразу стеком при ее отсутствии
         return this.isPaginated ? data.data : data;
     }
@@ -649,10 +576,10 @@ export default class BaseStore extends BaseClass {
     /**
      * Internal filter creation
      * @return void;
-     * @param {String|Object|BaseFilter} filterDefs
+     * @param {String|Object|Filter} filterDefs
      * */
     _internalApplyFilter(filterDefs) {
-        const filter = BaseFilter.parseFromMixed(filterDefs)
+        const filter = Filter.parseFromMixed(filterDefs)
         if (filter && this.hasFilter(filter.id)) {
             remove(this._innerFilters, {id: filter.id}); // delete filter with same id without triggering events
         }
@@ -662,8 +589,8 @@ export default class BaseStore extends BaseClass {
 
     /**
      * Add filter to store
-     * @fires BaseStore#EVENT_FILTERS_CHANGE
-     * @param {BaseFilter} filter
+     * @fires Store#EVENT_FILTERS_CHANGE
+     * @param {Filter} filter
      * */
     addFilter(filter) {
         const filters = [...this.filters];
@@ -687,9 +614,9 @@ export default class BaseStore extends BaseClass {
 
     /**
      * Apply filters to store by batch in one call
-     * @param {Array.<BaseFilter>} filters
+     * @param {Array.<Filter>} filters
      * @return void
-     * @fires BaseStore#EVENT_FILTERS_CHANGE
+     * @fires Store#EVENT_FILTERS_CHANGE
      * */
     setFilters(filters = []) {
         const oldFilters = [...this._innerFilters]; // save current filters stack
@@ -706,7 +633,7 @@ export default class BaseStore extends BaseClass {
     /**
      * Remove filter by id
      * @param {string} filterId
-     * @fires BaseStore#EVENT_FILTERS_CHANGE
+     * @fires Store#EVENT_FILTERS_CHANGE
      * */
     removeFilter(filterId) {
         const oldFilters = [...this.filters];
@@ -734,7 +661,7 @@ export default class BaseStore extends BaseClass {
     /**
      * Find filter or return null
      * @param {String|Number} filterId
-     * @return {?BaseFilter}
+     * @return {?Filter}
      * */
     getFilter(filterId) {
         return find(this._innerFilters, {id: filterId})
@@ -763,7 +690,7 @@ export default class BaseStore extends BaseClass {
     /**
      * Find sorter or return null
      * @param {String|Number} sorterId
-     * @return {?BaseSorter}
+     * @return {?Sorter}
      * */
     getSorter(sorterId) {
         return find(this._innerSorters, {id: sorterId})
@@ -782,11 +709,11 @@ export default class BaseStore extends BaseClass {
 
     /**
      * Логика обработки добавления Сортировки
-     * @param {string|Object|BaseSorter} sorterDefs
+     * @param {string|Object|Sorter} sorterDefs
      * @return void;
      * */
     _internalApplySorter(sorterDefs) {
-        const sorter = BaseSorter.parseFromMixed(sorterDefs)
+        const sorter = Sorter.parseFromMixed(sorterDefs)
         if (sorter && this.hasSorter(sorter.id)) {
             remove(this._innerSorters, {id: sorter.id}); // delete with same id without triggering events
         }
@@ -809,9 +736,9 @@ export default class BaseStore extends BaseClass {
 
     /**
      * Задаем новую карту сортировщиков
-     * @param {BaseSorter[]} sorters
+     * @param {Sorter[]} sorters
      *
-     * @fires BaseStore#EVENT_SORTERS_CHANGE
+     * @fires Store#EVENT_SORTERS_CHANGE
      * */
     setSorters(sorters) {
         const oldSorters = [...this._innerSorters];
@@ -826,7 +753,7 @@ export default class BaseStore extends BaseClass {
 
     /**
      * Актуальная карта сортировок
-     * @return {Array.<BaseSorter>}
+     * @return {Array.<Sorter>}
      * */
     getSorters() {
         return this._innerSorters;
@@ -835,10 +762,10 @@ export default class BaseStore extends BaseClass {
 
     /**
      * Добавляем Сортировку
-     * @param {BaseSorter} sorter
+     * @param {Sorter} sorter
      * @throws Error В случае некорректно переданного объекта Сортировки
      *
-     * @fires BaseStore#EVENT_SORTERS_CHANGE
+     * @fires Store#EVENT_SORTERS_CHANGE
      * */
     addSorter(sorter) {
         const sorters = [...this.sorters];
@@ -854,7 +781,7 @@ export default class BaseStore extends BaseClass {
      * Remove the sorter
      * @param {string} sorterId sorters id
      *
-     * @fires BaseStore#EVENT_SORTERS_CHANGE
+     * @fires Store#EVENT_SORTERS_CHANGE
      * */
     removeSorter(sorterId) {
         const oldSorters = [...this.sorters];
@@ -877,21 +804,13 @@ export default class BaseStore extends BaseClass {
 
 
     /**
-     * Обновляем данные о пагинации
-     * */
-    _refreshPagination() {
-        this.pagination = this._calculatePagination();
-    }
-
-
-    /**
      * Сериализация Сортировщиков для запроса к серверу
      * Например: http://fetch.api?sort=-name,date
      *
      * @return {object}
      * */
     serializeSortersToRequestParams() {
-        const sortersString = map(this._innerSorters, (sorter) => `${sorter.direction !== BaseSorter.SORT_ASC ? '-' : ''}${sorter.property}`)
+        const sortersString = map(this._innerSorters, (sorter) => `${sorter.direction !== Sorter.SORT_ASC ? '-' : ''}${sorter.property}`)
             .join(",");
 
         return !isEmpty(sortersString) ? {
@@ -941,18 +860,19 @@ export default class BaseStore extends BaseClass {
 
 
     /**
-     * Сериализуем мета данные для запроса следующей страницы
-     * @return {object} Объект для передача в request params
+     * Serialize pagination data to be sent with fetch requests
+     * @return {object}
      * */
-    serializePaginationToRequestParams() {
-        let params = {};
-        if (this.hasNextPage) {
+    serializePagingToRequestParams() {
+        const params = {};
+        const pagination = this.pagination
+        if (pagination) {
             Object.assign(params, {
-                limit: this.pageSize, page: this.pageNumber
+                limit: pagination.pageSize,
+                page: pagination.currentPage
             });
-            // Если мы уже получили первую порцию данных, то хотим след страницу
             if (this.isFetched) {
-                params.page++;
+                params.page++; // Want next page
             }
         }
         return params;
@@ -960,36 +880,22 @@ export default class BaseStore extends BaseClass {
 
 
     /**
-     * @param {object} response Объект ответа от Прокси
-     * @return {?PaginationDefinition} Полученный объект или null
+     * Parsing pagination data from proxy`s response
+     * @param {object} response
+     * @return {?Pagination}
      * @protected
      * */
-    _parsePaginationFromResponse(response) {
+    parsePagingFromResponse(response) {
         let metas = get(response, '_meta');
         if (!metas) {
             return null;
         }
-        return {
-            totalCount: metas.totalCount, currentPage: metas.currentPage, perPage: metas.perPage, pageCount: metas.pageCount
-        }
-    }
-
-
-    /**
-     * Вычисление пагинации
-     * @return {PaginationDefinition}
-     * @private
-     * */
-    _calculatePagination() {
-        const totalCount = this.count;
-        const perPage = this.pageSize;
-        // Если Хранилище пустое, страница будет 1
-        const pageCount = totalCount && Math.ceil(totalCount / perPage) || 1;
-        // Исходим из предположения что мы находимся на последней странице
-        const currentPage = pageCount;
-        return {
-            totalCount, currentPage, perPage, pageCount
-        }
+        return new Pagination({
+            totalCount: metas.totalCount,
+            currentPage: metas.currentPage,
+            pageSize: metas.pageSize,
+            pageCount: metas.pageCount
+        })
     }
 
 
@@ -1032,7 +938,7 @@ export default class BaseStore extends BaseClass {
     /**
      * Вызывает fetch() один раз и устанавливает флаг isFetched в true
      * при успешном ответе сервера
-     * @return {Promise<BaseStore>} Экземпляр Хранилища после загрузки
+     * @return {Promise<Store>} Экземпляр Хранилища после загрузки
      * */
     async ensureFetched() {
         if (!this.isFetched) {
@@ -1069,7 +975,7 @@ export default class BaseStore extends BaseClass {
     /**
      * Create new model in store context using modelDefault configuration
      * @param {Object} extraData Extra data to be merged and passed to model`s constructor
-     * @return {BaseModel} The created model
+     * @return {Model} The created model
      * */
     createModel(extraData = {}) {
         const data = {...this.modelDefaultConfig, ...extraData};

@@ -6,12 +6,12 @@ import {isObject, isString} from "lodash-es";
  * @homepage https://sitespring.ru
  * @licence Proprietary
  *
- * @class BaseSorter Represent basic sorter
+ * @class Sorter Represent basic sorter
  * @property {String|Number} id
  * @property {String} property
  * @property {String} direction
  */
-export default class BaseSorter extends BaseClass {
+export default class Sorter extends BaseClass {
     static SORT_ASC = 'asc'
     static SORT_DESC = 'desc'
 
@@ -59,7 +59,7 @@ export default class BaseSorter extends BaseClass {
 
 
     static parseFromMixed(mixed) {
-        if (mixed instanceof BaseSorter) {
+        if (mixed instanceof Sorter) {
             return mixed;
         }
         if (isObject(mixed)) {

@@ -6,13 +6,13 @@ import {isObject, isString} from "lodash-es";
  * @homepage https://sitespring.ru
  * @licence Proprietary
  *
- * @class BaseFilter Represent basic filter
+ * @class Filter Represent basic filter
  * @property {String|Number} id
  * @property {String} property
  * @property {String|Array|Number|Boolean} value
  * @property {String} operator
  */
-export default class BaseFilter extends BaseClass {
+export default class Filter extends BaseClass {
     static OPERATOR_GREATER = '>'
     static OPERATOR_GREATER_OR_EQUAL = '>='
     static OPERATOR_LOWER = '<'
@@ -33,8 +33,24 @@ export default class BaseFilter extends BaseClass {
         }
     }
 
+    constructor(config) {
+        super(config);
+        if (config.operator) {
+            this.constructor.ensureOperator(config.operator)
+        }
+    }
+
     get id() {
         return this.initialConfig.id || this.property
+    }
+
+    get operator() {
+        return this.initialConfig.operator
+    }
+
+    set operator(operator) {
+        this.constructor.ensureOperator(operator)
+        this.initialConfig.operator = operator
     }
 
     static get operators() {
@@ -53,8 +69,15 @@ export default class BaseFilter extends BaseClass {
     }
 
 
+    static ensureOperator(operator) {
+        if (this.operators.indexOf(operator) < 0) {
+            throw new Error(`Invalid filter's operator ${operator}`);
+        }
+    }
+
+
     static parseFromMixed(mixed) {
-        if (mixed instanceof BaseFilter) {
+        if (mixed instanceof Filter) {
             return mixed;
         }
         if (isObject(mixed)) {

@@ -4,9 +4,8 @@
  * @licence Proprietary
  */
 
-import BaseModel from "../../src/BaseModel";
-import BaseStore from "../../src/BaseStore";
-import {expect, jest} from '@jest/globals';
+import Store from "../../src/Store.js";
+import {describe, expect, jest, test} from '@jest/globals';
 
 
 // Эмулируем модуль целиком
@@ -14,7 +13,7 @@ jest.mock('axios');
 
 describe('Search request test', () => {
     test('Search request default param', async () => {
-        const store = new BaseStore({
+        const store = new Store({
             fetchUrl: 'https://api.com'
         });
         store.doRequest = jest.fn();
@@ -30,7 +29,7 @@ describe('Search request test', () => {
     });
 
     test('Empty value', async () => {
-        const store = new BaseStore({
+        const store = new Store({
             fetchUrl: 'https://api.com'
         });
         store.doRequest = jest.fn();
@@ -45,7 +44,7 @@ describe('Search request test', () => {
 
 
     test('With filters', async () => {
-        const store = new BaseStore({
+        const store = new Store({
             fetchUrl: 'https://api.com',
             searchParam: 'queryText',
             filters: [

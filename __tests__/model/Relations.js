@@ -3,8 +3,8 @@
  *
  * @licence Proprietary
  */
-import BaseModel from "../../src/BaseModel";
-import BaseStore from "../../src/BaseStore";
+import Model from "../../src/Model.js";
+import Store from "../../src/Store.js";
 import axios from "axios";
 import {jest} from '@jest/globals'
 
@@ -14,7 +14,7 @@ jest.mock('axios');
 // @see https://stackoverflow.com/questions/51393952/mock-inner-axios-create
 // axios.create.mockReturnThis();
 
-class Author extends BaseModel {
+class Author extends Model {
     entityName = 'author';
 
     get fields() {
@@ -35,7 +35,7 @@ class Author extends BaseModel {
     }
 }
 
-class Article extends BaseModel {
+class Article extends Model {
     entityName = 'article';
 
     get fields() {
@@ -49,9 +49,9 @@ class Article extends BaseModel {
 /**
  * @class Book
  * @property {Author} author
- * @property {BaseStore<Article>} articles
+ * @property {Store<Article>} articles
  * */
-class Book extends BaseModel {
+class Book extends Model {
     entityName = 'book';
 
     get fields() {
@@ -96,7 +96,7 @@ describe('Магические геттеры связей', () => {
 
         expect(theBook.author).toBeInstanceOf(Author);
         expect(theBook.author.name).toEqual('Иванов П.');
-        expect(theBook.articles).toBeInstanceOf(BaseStore);
+        expect(theBook.articles).toBeInstanceOf(Store);
         expect(theBook.articles.count).toBe(2);
     });
 });
@@ -118,8 +118,8 @@ describe('Магические сеттеры связей', () => {
     });
     test('Корректный тип хранилища', () => {
         const theBook = new Book();
-        theBook.articles = new BaseStore();
-        expect(theBook.articles).toBeInstanceOf(BaseStore);
+        theBook.articles = new Store();
+        expect(theBook.articles).toBeInstanceOf(Store);
     });
     test('Некорректный тип хранилища', () => {
         const theBook = new Book();
@@ -128,7 +128,7 @@ describe('Магические сеттеры связей', () => {
         }).toThrowError();
         expect(() => {
             theBook.articles = new Object({foo: 'bar'});
-        }).toThrow('articles relation expect BaseStore instance, Object given');
+        }).toThrow('articles relation expect Store instance, Object given');
     });
     test('Foreign key', () => {
         const theBook = new Book();

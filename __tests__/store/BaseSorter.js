@@ -4,32 +4,32 @@
  * @licence Proprietary
  */
 import {expect} from "@jest/globals";
-import BaseSorter from "../../src/BaseSorter.js";
+import Sorter from "../../src/Sorter.js";
 
 describe('Base Store testing', () => {
     test('Create from string', () => {
-        const filter = BaseSorter.parseFromMixed('foo')
-        expect(filter).toBeInstanceOf(BaseSorter);
+        const filter = Sorter.parseFromMixed('foo')
+        expect(filter).toBeInstanceOf(Sorter);
         expect(filter.id).toEqual('foo');
-        expect(filter.direction).toEqual(BaseSorter.SORT_ASC);
+        expect(filter.direction).toEqual(Sorter.SORT_ASC);
         expect(filter.property).toEqual('foo');
     })
 
     test('Create from object', () => {
-        const filter = BaseSorter.parseFromMixed({
+        const filter = Sorter.parseFromMixed({
             property: 'bar',
             direction: 'desc'
         })
-        expect(filter).toBeInstanceOf(BaseSorter);
+        expect(filter).toBeInstanceOf(Sorter);
         expect(filter.id).toEqual('bar');
-        expect(filter.direction).toEqual(BaseSorter.SORT_DESC);
+        expect(filter.direction).toEqual(Sorter.SORT_DESC);
         expect(filter.property).toEqual('bar');
     })
 
     test('To string', () => {
-        const filter = new BaseSorter({
+        const filter = new Sorter({
             property: 'name',
-            direction: BaseSorter.SORT_DESC
+            direction: Sorter.SORT_DESC
         });
         expect(filter.toString()).toEqual('-name');
     })

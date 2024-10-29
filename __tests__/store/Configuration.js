@@ -3,22 +3,22 @@
  * @homepage https://sitespring.ru
  * @licence Proprietary
  */
-import BaseStore from "../../src/BaseStore.js";
+import Store from "../../src/Store.js";
 import {expect} from "@jest/globals";
-import BaseProxy from "../../src/BaseProxy.js";
+import Proxy from "../../src/Proxy.js";
 import {BaseModel} from "../../index.js";
 
 
 class CustomModel extends BaseModel {
 }
 
-class CustomProxy extends BaseProxy {
+class CustomProxy extends Proxy {
 }
 
 
 describe('Configuration', () => {
     test('Constructor', () => {
-        const store = new BaseStore({
+        const store = new Store({
             model: CustomModel,
             proxy: CustomProxy,
             sorters: [{
@@ -49,8 +49,8 @@ describe('Configuration', () => {
     })
 
     test('Set proxy', () => {
-        const store = new BaseStore();
-        expect(store.proxy).toBeInstanceOf(BaseProxy)
+        const store = new Store();
+        expect(store.proxy).toBeInstanceOf(Proxy)
         store.proxy = {
             type: CustomProxy,
             baseUrl: 'foo/bar'
@@ -60,7 +60,7 @@ describe('Configuration', () => {
     })
 
     test('Set models', () => {
-        const store = new BaseStore({}, [{title: 'foo'}, {title: 'bar'}]);
+        const store = new Store({}, [{title: 'foo'}, {title: 'bar'}]);
         expect(store.models).toHaveLength(2)
     })
 });
