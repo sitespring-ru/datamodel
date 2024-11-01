@@ -105,11 +105,20 @@ export default class Filter extends BaseClass {
     static parseFromString(str) {
         const reg = new RegExp('([\\w]+)([' + this.operators.join('|') + ']+)(.*)')
         const matches = str.match(reg)
+        const parseValue = (raw) => {
+            try {
+                return JSON.parse(raw)
+            } catch (e) {
+                return raw;
+            }
+        }
+
         if (null != matches) {
             return new this({
                 id: matches[1],
+                property: matches[1],
                 operator: matches[2],
-                value: JSON.parse(matches[3])
+                value: parseValue(matches[3])
             })
         }
         return null;

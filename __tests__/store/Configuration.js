@@ -6,7 +6,7 @@
 import Store from "../../src/Store.js";
 import {expect} from "@jest/globals";
 import Proxy from "../../src/Proxy.js";
-import {BaseModel} from "../../index.js";
+import BaseModel from "../../src/Model.js";
 
 
 class CustomModel extends BaseModel {

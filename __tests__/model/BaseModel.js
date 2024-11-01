@@ -4,9 +4,8 @@
  * @licence Proprietary
  */
 import Model from "../../src/Model.js";
-import axios from "axios";
 import {expect, jest} from '@jest/globals'
-import {BaseStore} from "../../index.js";
+import BaseStore from "../../src/Store.js";
 
 // Эмулируем модуль целиком
 jest.mock('axios');

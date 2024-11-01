@@ -6,7 +6,7 @@
 
 
 import {describe, expect, jest, test} from "@jest/globals";
-import {BaseProxy} from "../../index.js";
+import BaseProxy from "../../src/Proxy.js";
 
 describe('Proxy extra headers tests', () => {
     test('Setup extra headers via constructor', async () => {

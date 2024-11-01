@@ -5,6 +5,7 @@
  */
 import {expect} from "@jest/globals";
 import Filter from "../../src/Filter.js";
+import Store from "../../src/Store.js";
 
 describe('Base Filters testing', () => {
     test('Create from string', () => {
@@ -53,5 +54,70 @@ describe('Base Filters testing', () => {
             value: true
         });
         expect(filter.toString()).toEqual('is_closed=true');
+    })
+})
+
+describe('Store`s filters parsing', () => {
+    test('URLSearchParams', () => {
+        const params = new URLSearchParams('?q=bazz&filters=created_at-["2024-10-21","2024-10-31"]:foo>bar');
+        const store = new Store();
+        store.parseFiltersFromRequestParams(params);
+        expect(store.filters).toEqual([
+            new Filter({
+                id: 'created_at',
+                property: 'created_at',
+                value: ["2024-10-21", "2024-10-31"],
+                operator: Filter.OPERATOR_BETWEEN
+            }),
+            new Filter({
+                id: 'foo',
+                property: 'foo',
+                value: 'bar',
+                operator: Filter.OPERATOR_GREATER
+            })
+        ])
+    })
+
+    test('Query string', () => {
+        const params = 'q=bazz&filters=created_at-["2024-10-21","2024-10-31"]:foo>bar';
+        const store = new Store();
+        store.parseFiltersFromRequestParams(params);
+        expect(store.filters).toEqual([
+            new Filter({
+                id: 'created_at',
+                property: 'created_at',
+                value: ["2024-10-21", "2024-10-31"],
+                operator: Filter.OPERATOR_BETWEEN
+            }),
+            new Filter({
+                id: 'foo',
+                property: 'foo',
+                value: 'bar',
+                operator: Filter.OPERATOR_GREATER
+            })
+        ])
+    })
+
+    test('Params object', () => {
+        const params = {
+            q: 'bazz',
+            filters: 'created_at-["2024-10-21","2024-10-31"]:foo>bar'
+        };
+        const store = new Store();
+        store.parseFiltersFromRequestParams(params);
+        expect(store.filters).toEqual([
+            new Filter({
+                id: 'created_at',
+                property: 'created_at',
+                value: ["2024-10-21", "2024-10-31"],
+                operator: Filter.OPERATOR_BETWEEN
+            }),
+            new Filter({
+                id: 'foo',
+                property: 'foo',
+                value: 'bar',
+                operator: Filter.OPERATOR_GREATER
+            })
+        ])
     })
 })

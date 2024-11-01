@@ -1,4 +1,4 @@
-import {each, find, get, isEmpty, isEqual, isFunction, isMatch, map, merge, remove, size, sumBy, unset} from "lodash-es";
+import {each, find, get, isEmpty, isEqual, isFunction, isMatch, isObject, isString, map, merge, remove, size, sumBy, unset} from "lodash-es";
 import BaseClass from "./BaseClass.js";
 import Model from "./Model.js";
 import Proxy from "./Proxy.js";
@@ -19,6 +19,7 @@ import Pagination from "./Pagination.js";
  * @property {Boolean} autoFilter apply auto filtering, default false
  * @property {Boolean} isPaginated default false
  * @property {String} filterParam The request query param for filters data, default is 'filter'
+ * @property {String} filterParamSeparator Default is ":"
  * @property {String} sortParam The request query param for sorting data, default is 'sort'
  * @property {String} searchParam The name of query param with search string, default is 'q'
  * @property {Object} modelDefaultConfig The data to be loaded to model during creation method default {}
@@ -131,7 +132,8 @@ export default class Store extends BaseClass {
             , isPaginated: false
             , autoSort: false
             , autoFilter: false
-            , filterParam: 'filter'
+            , filterParam: 'filters'
+            , filterParamSeparator: ':'
             , sortParam: 'sort'
             , searchParam: 'q'
             , modelDefaults: {}
@@ -163,8 +165,8 @@ export default class Store extends BaseClass {
             }
         })
      * */
-    set filters($filters) {
-        this.setFilters($filters);
+    set filters(filters) {
+        this.setFilters(filters);
     }
 
     /**
@@ -848,13 +850,18 @@ export default class Store extends BaseClass {
 
     /**
      * Parse data from request params that was previously serialized by  serializeFiltersToRequestParams() method
-     * @param {Object} params
+     * @param {Object|String|URLSearchParams} params
      * */
     parseFiltersFromRequestParams(params) {
-        if (!params[this.filterParam]) {
-            return
+        let filters;
+        if (isString(params)) {
+            params = new URLSearchParams(params)
         }
-        const filters = params[this.filterParam].split(',')
+        if (params instanceof URLSearchParams && params.has(this.filterParam)) {
+            filters = params.get(this.filterParam).split(this.filterParamSeparator)
+        } else if (isObject(params) && params[this.filterParam]) {
+            filters = params[this.filterParam].split(this.filterParamSeparator)
+        }
         this.setFilters(filters)
     }
 

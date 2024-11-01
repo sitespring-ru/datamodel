@@ -211,7 +211,7 @@ describe('Конфигурация связанных классов', () => {
         expect(theBook.articles.doRequest).toHaveBeenCalledWith({
             url: '/article'
             , params: {
-                filter: "book_id=1"
+                filters: "book_id=1"
             }
         });
     });

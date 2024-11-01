@@ -232,7 +232,7 @@ describe('Работа с фильтрами', () => {
         expect($store.doRequest).toHaveBeenCalledWith({
             url: 'https://api.com',
             params: {
-                filter: "age>=16,name=true"
+                filters: "age>=16,name=true"
             }
         });
     });
@@ -246,7 +246,7 @@ describe('Работа с фильтрами', () => {
         expect($store.doRequest).toHaveBeenCalledWith({
             url: '/base-model',
             params: {
-                filter: "name=true"
+                filters: "name=true"
             }
         });
 
@@ -257,7 +257,7 @@ describe('Работа с фильтрами', () => {
         expect($store.doRequest).toHaveBeenCalledWith({
             url: '/base-model',
             params: {
-                filter: "age>=16,name=true"
+                filters: "age>=16,name=true"
             }
         });
 
