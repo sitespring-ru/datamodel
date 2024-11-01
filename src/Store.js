@@ -1,4 +1,4 @@
-import {each, find, get, isEmpty, isEqual, isFunction, isMatch, isObject, isString, map, merge, remove, size, sumBy, unset} from "lodash-es";
+import {each, find, get, isEmpty, isEqual, isFunction, isMatch, map, merge, remove, size, sumBy, unset} from "lodash-es";
 import BaseClass from "./BaseClass.js";
 import Model from "./Model.js";
 import Proxy from "./Proxy.js";
@@ -22,6 +22,8 @@ import Pagination from "./Pagination.js";
  * @property {String} filterParamSeparator Default is ":"
  * @property {String} sortParam The request query param for sorting data, default is 'sort'
  * @property {String} searchParam The name of query param with search string, default is 'q'
+ * @property {String} pageParam The name of query param with page number inforamtion
+ * @property {String} limitParam The name of query param with page size information
  * @property {Object} modelDefaultConfig The data to be loaded to model during creation method default {}
  */
 export default class Store extends BaseClass {
@@ -128,17 +130,19 @@ export default class Store extends BaseClass {
 
     get defaults() {
         return {
-            pageSize: 20
-            , isPaginated: false
-            , autoSort: false
-            , autoFilter: false
-            , filterParam: 'filters'
-            , filterParamSeparator: ':'
-            , sortParam: 'sort'
-            , searchParam: 'q'
-            , modelDefaults: {}
-            , model: Model
-            , proxy: Proxy
+            pageSize: 20,
+            isPaginated: false,
+            autoSort: false,
+            autoFilter: false,
+            filterParam: 'filters',
+            filterParamSeparator: ':',
+            sortParam: 'sort',
+            searchParam: 'q',
+            modelDefaults: {},
+            model: Model,
+            proxy: Proxy,
+            pageParam: 'page',
+            limitParam: 'limit'
         };
     }
 
@@ -274,6 +278,14 @@ export default class Store extends BaseClass {
         return this._innerModels;
     }
 
+    get hasSearchString() {
+        return !isEmpty(this._searchString)
+    }
+
+    get searchString() {
+        return this._searchString
+    }
+
 
     /**
      * @return {?Pagination}
@@ -281,10 +293,7 @@ export default class Store extends BaseClass {
     get pagination() {
         if (this.isPaginated && !this._pagination) {
             this._pagination = new Pagination({
-                totalCount: this.count,
-                pageSize: this.pageSize,
-                currentPage: 1,
-                pageCount: Math.ceil(this.count / this.pageSize) || 1
+                totalCount: this.count, pageSize: this.pageSize, currentPage: 1, pageCount: Math.ceil(this.count / this.pageSize) || 1
             })
         }
         return this._pagination;
@@ -505,11 +514,11 @@ export default class Store extends BaseClass {
      * @fires Store#EVENT_FETCH
      * */
     async fetch(config = {}) {
-        const searchParams = this.serializeSearchStringToRequestParams();
-        const filtersParams = this.serializeFiltersToRequestParams();
-        const sortersParams = this.serializeSortersToRequestParams();
-        const pageParams = this.isPaginated ? this.serializePagingToRequestParams() : {};
-        const params = {...searchParams, ...filtersParams, ...sortersParams, ...pageParams};
+        const params = this.serializeMetasToRequestParams();
+        if (this.isFetched && this.isPaginated) {
+            params[this.pageParam]++; // want next page
+        }
+
         const url = this.buildFetchUrl();
         // lodash merge to do deep merging
         const requestConfig = merge({}, {url, params}, {...config});
@@ -811,13 +820,8 @@ export default class Store extends BaseClass {
      *
      * @return {object}
      * */
-    serializeSortersToRequestParams() {
-        const sortersString = map(this._innerSorters, (sorter) => `${sorter.direction !== Sorter.SORT_ASC ? '-' : ''}${sorter.property}`)
-            .join(",");
-
-        return !isEmpty(sortersString) ? {
-            sort: sortersString
-        } : {};
+    serializeSortersToString() {
+        return this.sorters.map(sorter => sorter.toString()).join(',')
     }
 
 
@@ -828,62 +832,64 @@ export default class Store extends BaseClass {
      *
      * @return {object}
      * */
-    serializeFiltersToRequestParams() {
-        if (this.hasFilters) {
-            return {
-                [this.filterParam]: this.filters.map(filter => filter.toString()).join(',')
-            }
-        }
-        return {};
-    }
-
-
-    serializeSearchStringToRequestParams() {
-        if (isEmpty(this._searchString)) {
-            return {};
-        }
-        return {
-            [this.initialConfig.searchParam]: this._searchString
-        }
+    serializeFiltersToString() {
+        return this.filters.map(filter => filter.toString()).join(this.filterParamSeparator);
     }
 
 
     /**
-     * Parse data from request params that was previously serialized by  serializeFiltersToRequestParams() method
+     * Parse data from request params that was previously serialized by  serializeMetasToRequestParams() method
      * @param {Object|String|URLSearchParams} params
      * */
-    parseFiltersFromRequestParams(params) {
-        let filters;
-        if (isString(params)) {
+    parseMetasFromRequestParams(params) {
+        if (!(params instanceof URLSearchParams)) {
             params = new URLSearchParams(params)
         }
-        if (params instanceof URLSearchParams && params.has(this.filterParam)) {
-            filters = params.get(this.filterParam).split(this.filterParamSeparator)
-        } else if (isObject(params) && params[this.filterParam]) {
-            filters = params[this.filterParam].split(this.filterParamSeparator)
+        if (params.has(this.filterParam)) {
+            this.setFilters(params.get(this.filterParam).split(this.filterParamSeparator))
         }
-        this.setFilters(filters)
+        if (params.has(this.sortParam)) {
+            this.setSorters(params.get(this.sortParam).split(','))
+        }
+        if (params.has(this.searchParam)) {
+            this.setSearchString(params.get(this.searchParam))
+        }
+        if (this.isPaginated) {
+            if (params.has(this.pageParam)) {
+                this.pagination.currentPage = params.get(this.pageParam)
+            }
+        }
     }
 
 
     /**
-     * Serialize pagination data to be sent with fetch requests
-     * @return {object}
+     * @return {Object} The params to be sent with fetch request
      * */
-    serializePagingToRequestParams() {
+    serializeMetasToRequestParams() {
         const params = {};
-        const pagination = this.pagination
-        if (pagination) {
+        if (this.hasFilters) {
             Object.assign(params, {
-                limit: pagination.pageSize,
-                page: pagination.currentPage
-            });
-            if (this.isFetched) {
-                params.page++; // Want next page
-            }
+                [this.filterParam]: this.serializeFiltersToString()
+            })
+        }
+        if (this.hasSorters) {
+            Object.assign(params, {
+                [this.sortParam]: this.serializeSortersToString()
+            })
+        }
+        if (this.hasSearchString) {
+            Object.assign(params, {
+                [this.searchParam]: this.searchString
+            })
+        }
+        if (this.isPaginated) {
+            Object.assign(params, {
+                [this.pageParam]: this.pagination.currentPage, [this.limitParam]: this.pagination.pageSize
+            })
         }
         return params;
     }
+
 
 
     /**
@@ -898,10 +904,7 @@ export default class Store extends BaseClass {
             return null;
         }
         return new Pagination({
-            totalCount: metas.totalCount,
-            currentPage: metas.currentPage,
-            pageSize: metas.pageSize,
-            pageCount: metas.pageCount
+            totalCount: metas.totalCount, currentPage: metas.currentPage, pageSize: metas.pageSize, pageCount: metas.pageCount
         })
     }
 

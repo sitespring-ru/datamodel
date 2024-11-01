@@ -60,7 +60,7 @@ describe('Search request test', () => {
             url: 'https://api.com',
             params: {
                 queryText: 'baz',
-                filters: "age>=16,name=true"
+                filters: "age>=16:name=true"
             }
         });
     });
