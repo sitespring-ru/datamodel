@@ -128,7 +128,7 @@ describe('Магические сеттеры связей', () => {
         }).toThrowError();
         expect(() => {
             theBook.articles = new Object({foo: 'bar'});
-        }).toThrow('articles relation expect Store instance, Object given');
+        }).toThrow('articles relation expect BaseStore instance, Object given');
     });
     test('Foreign key', () => {
         const theBook = new Book();

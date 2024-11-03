@@ -64,4 +64,15 @@ describe('Search request test', () => {
             }
         });
     });
+
+
+    test('Event handling', (done) => {
+        const store = new BaseStore({hasEmitter: true})
+        store.on(BaseStore.EVENT_SEARCH_CHANGE, search => {
+            expect(search).toEqual('foo bar')
+            done();
+        })
+
+        store.searchString = '  foo bar'
+    })
 });

@@ -5,7 +5,7 @@ import mitt from "mitt";
  * Базовый класс поддерживающий конфигурацию и события
  *
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
- *
+ * @property {Boolean} hasEmitter
  *
  */
 export default class BaseClass {
@@ -21,7 +21,9 @@ export default class BaseClass {
      * */
 
     get defaults() {
-        return {};
+        return {
+            hasEmitter: false
+        };
     }
 
 

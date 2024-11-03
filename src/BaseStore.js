@@ -22,6 +22,7 @@ import BasePagination from "./BasePagination.js";
  * @property {String} filterParamSeparator Default is ":"
  * @property {String} sortParam The request query param for sorting data, default is 'sort'
  * @property {String} searchParam The name of query param with search string, default is 'q'
+ * @property {String} searchString The custom string value the store filtering is
  * @property {String} pageParam The name of query param with page number inforamtion
  * @property {String} limitParam The name of query param with page size information
  * @property {Object} modelDefaultConfig The data to be loaded to model during creation method default {}
@@ -130,6 +131,10 @@ export default class BaseStore extends BaseClass {
             this.setFilters(config.filters)
         }
 
+        if (config.searchString) {
+            this.setSearchString(config.searchString)
+        }
+
         if (Array.isArray(models)) {
             this.loadModels(models)
         }
@@ -137,6 +142,7 @@ export default class BaseStore extends BaseClass {
 
     get defaults() {
         return {
+            ...super.defaults,
             pageSize: 20,
             isPaginated: false,
             autoSort: false,
@@ -145,6 +151,7 @@ export default class BaseStore extends BaseClass {
             filterParamSeparator: ':',
             sortParam: 'sort',
             searchParam: 'q',
+            searchString: '',
             modelDefaults: {},
             model: BaseModel,
             proxy: BaseProxy,
@@ -167,15 +174,6 @@ export default class BaseStore extends BaseClass {
         return true;
     }
 
-
-    /**
-     * Setter для свойства filters для определения через конструктор, например
-     * Persons.createInstance({
-            filters: {
-                byAge: {property: 'age'}
-            }
-        })
-     * */
     set filters(filters) {
         this.setFilters(filters);
     }
@@ -188,16 +186,8 @@ export default class BaseStore extends BaseClass {
         return this._innerFilters;
     }
 
-    /**
-     * Setter для свойства sorters для определения через конструктор, например
-     * Persons.createInstance({
-            sorters: {
-                byAge: {property: 'age'}
-            }
-        })
-     * */
-    set sorters($sorters) {
-        this.setSorters($sorters);
+    set sorters(sorters) {
+        this.setSorters(sorters);
     }
 
     get sorters() {
@@ -291,6 +281,10 @@ export default class BaseStore extends BaseClass {
 
     get searchString() {
         return this._searchString
+    }
+
+    set searchString(val) {
+        this.setSearchString(val)
     }
 
 
