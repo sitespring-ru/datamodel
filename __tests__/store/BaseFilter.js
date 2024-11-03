@@ -4,8 +4,8 @@
  * @licence Proprietary
  */
 import {expect} from "@jest/globals";
-import Filter from "../../src/Filter.js";
-import Store from "../../src/Store.js";
+// import Filter from "../../src/Filter.js";
+import {Filter} from "../../index.js"
 
 describe('Base Filters testing', () => {
     test('Create from string', () => {

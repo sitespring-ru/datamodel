@@ -3,15 +3,15 @@
  *
  * @licence Proprietary
  */
-export {default as BaseClass} from "./src/BaseClass.js"
-export {default as Model} from "./src/Model.js"
-export {default as Proxy} from "./src/Proxy.js"
-export {default as Store} from "./src/Store.js"
-export {default as Pagination} from "./src/Pagination.js"
-export {default as Filter} from "./src/Filter.js"
-export {default as Sorter} from "./src/Sorter.js"
+import BaseClass from "./src/BaseClass.js";
+import Model from "./src/Model.js"
+import Proxy from "./src/Proxy.js"
+import Store from "./src/Store.js"
+import Pagination from "./src/Pagination.js"
+import Filter from "./src/Filter.js"
+import Sorter from "./src/Sorter.js"
 
-export default {
+export {
     BaseClass,
     Model,
     Proxy,
