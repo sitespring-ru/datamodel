@@ -3,7 +3,7 @@
  *
  * @licence Proprietary
  */
-import Proxy from "../../src/Proxy.js";
+import BaseProxy from "../../src/BaseProxy.js";
 import {describe, jest} from '@jest/globals'
 
 
@@ -17,7 +17,7 @@ jest.mock('axios');
 
 let $proxy;
 beforeEach(() => {
-    $proxy = new Proxy({
+    $proxy = new BaseProxy({
         baseUrl: 'https://sitespring.ru'
     });
     // Считаем вызов событий
@@ -38,9 +38,9 @@ describe('Base Proxy tests', ()=>{
             .then((data) => {
                 expect(data).toEqual(mockData);
                 expect($proxy.emit).toBeCalledTimes(3);
-                expect($proxy.emit).toHaveBeenNthCalledWith(1, Proxy.EVENT_REQUEST_START, requestConfig);
-                expect($proxy.emit).toHaveBeenNthCalledWith(2, Proxy.EVENT_REQUEST_SUCCESS, data);
-                expect($proxy.emit).toHaveBeenNthCalledWith(3, Proxy.EVENT_REQUEST_END, response);
+                expect($proxy.emit).toHaveBeenNthCalledWith(1, BaseProxy.EVENT_REQUEST_START, requestConfig);
+                expect($proxy.emit).toHaveBeenNthCalledWith(2, BaseProxy.EVENT_REQUEST_SUCCESS, data);
+                expect($proxy.emit).toHaveBeenNthCalledWith(3, BaseProxy.EVENT_REQUEST_END, response);
                 expect($proxy.isRemoteError).toBeFalsy();
                 expect($proxy.isValidationError).toBeFalsy();
                 expect($proxy.errorMessage).toBeNull();
@@ -60,9 +60,9 @@ describe('Base Proxy tests', ()=>{
             // Отлавливаем ошибку
             .catch((error) => {
                 expect($proxy.emit).toBeCalledTimes(3);
-                expect($proxy.emit).toHaveBeenNthCalledWith(1, Proxy.EVENT_REQUEST_START, requestConfig);
-                expect($proxy.emit).toHaveBeenNthCalledWith(2, Proxy.EVENT_REQUEST_FAILED, error);
-                expect($proxy.emit).toHaveBeenNthCalledWith(3, Proxy.EVENT_REQUEST_END, undefined);
+                expect($proxy.emit).toHaveBeenNthCalledWith(1, BaseProxy.EVENT_REQUEST_START, requestConfig);
+                expect($proxy.emit).toHaveBeenNthCalledWith(2, BaseProxy.EVENT_REQUEST_FAILED, error);
+                expect($proxy.emit).toHaveBeenNthCalledWith(3, BaseProxy.EVENT_REQUEST_END, undefined);
                 expect($proxy.isRemoteError).toBeTruthy();
                 expect($proxy.isValidationError).toBeFalsy();
                 expect($proxy.errorMessage).toEqual('Internal Server Error');
@@ -89,12 +89,12 @@ describe('Base Proxy tests', ()=>{
 
 
     test('Токен авторизации + событие', (done) => {
-        Proxy.setBearerToken('123');
+        BaseProxy.setBearerToken('123');
 
-        $proxy = new Proxy({
+        $proxy = new BaseProxy({
             hasEmitter: true
         });
-        $proxy.on(Proxy.EVENT_REQUEST_START, /** @param {AxiosResponseSchema} config */(config) => {
+        $proxy.on(BaseProxy.EVENT_REQUEST_START, /** @param {AxiosResponseSchema} config */(config) => {
             expect(config).toMatchObject({
                 headers: {
                     'Authorization': 'Bearer 123'
@@ -109,11 +109,11 @@ describe('Base Proxy tests', ()=>{
     });
 
     test('Токен авторизации: изменение через метод', async () => {
-        $proxy = new Proxy();
+        $proxy = new BaseProxy();
         $proxy.constructor.setBearerToken('1234');
 
         // Создаем другой экземпляр, токен должен быть определен
-        const $proxy2 = new Proxy();
+        const $proxy2 = new BaseProxy();
         // Эмулируем ответ
         $proxy2.axios.request = jest.fn().mockResolvedValue({});
 
@@ -124,7 +124,7 @@ describe('Base Proxy tests', ()=>{
             }
         });
 
-        Proxy.bearerToken = null;
+        BaseProxy.bearerToken = null;
         await $proxy2.doRequest();
         expect($proxy2.axios.request).toBeCalledWith({});
     });

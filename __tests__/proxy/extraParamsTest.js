@@ -6,7 +6,7 @@
 
 
 import {describe, expect, jest, test} from "@jest/globals";
-import BaseProxy from "../../src/Proxy.js";
+import BaseProxy from "../../src/BaseProxy.js";
 
 describe('Work with extra params', () => {
     test('Setup extra params', async () => {

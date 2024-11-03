@@ -3,7 +3,7 @@
  *
  * @licence Proprietary
  */
-import Model from "../../src/Model.js";
+import BaseModel from "../../src/BaseModel.js";
 import axios from "axios";
 import {jest} from '@jest/globals'
 
@@ -14,7 +14,7 @@ jest.mock('axios');
 // @see https://stackoverflow.com/questions/51393952/mock-inner-axios-create
 // axios.create.mockReturnThis();
 
-class TestModel extends Model {
+class TestModel extends BaseModel {
     entityName = 'test-model';
 
     get fields() {

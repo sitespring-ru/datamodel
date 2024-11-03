@@ -3,10 +3,10 @@
  *
  * @licence Proprietary
  */
-import Model from "../../src/Model.js";
-import Store from "../../src/Store.js";
+import BaseModel from "../../src/BaseModel.js";
+import BaseStore from "../../src/BaseStore.js";
 import {expect, jest} from '@jest/globals';
-import Sorter from "../../src/Sorter.js";
+import BaseSorter from "../../src/BaseSorter.js";
 
 
 // Эмулируем модуль целиком
@@ -15,7 +15,7 @@ jest.mock('axios');
 // @see https://stackoverflow.com/questions/51393952/mock-inner-axios-create
 // axios.create.mockReturnThis();
 
-class PersonTestModel extends Model {
+class PersonTestModel extends BaseModel {
     get fields() {
         return {
             ...super.fields,
@@ -25,7 +25,7 @@ class PersonTestModel extends Model {
     }
 }
 
-class PersonsTestStore extends Store {
+class PersonsTestStore extends BaseStore {
     get model() {
         return PersonTestModel;
     }
@@ -290,7 +290,7 @@ describe('Работа с сортировкой', () => {
 
     test('Добавление метод', (done) => {
         let $store = new PersonsTestStore({hasEmitter: true});
-        $store.on(Store.EVENT_SORTERS_CHANGE, ({newSorters, oldSorters}) => {
+        $store.on(BaseStore.EVENT_SORTERS_CHANGE, ({newSorters, oldSorters}) => {
             expect($store.sortersCount).toEqual(1);
             expect(newSorters).toEqual($store.sorters);
             expect(newSorters[0]).toMatchObject({property: 'age', direction: 'asc'});
@@ -303,7 +303,7 @@ describe('Работа с сортировкой', () => {
         let $store = new PersonsTestStore({hasEmitter: true});
         $store.addSorter({property: 'age'});
 
-        $store.on(Store.EVENT_SORTERS_CHANGE, ({newSorters, oldSorters}) => {
+        $store.on(BaseStore.EVENT_SORTERS_CHANGE, ({newSorters, oldSorters}) => {
             expect($store.sortersCount).toEqual(0);
             expect(newSorters).toEqual([]);
             expect(oldSorters[0]).toMatchObject({property: 'age', direction: 'asc'});
@@ -340,7 +340,7 @@ describe('Работа с сортировкой', () => {
         });
 
         $store.setSorters([
-            {property: 'age', direction: Sorter.SORT_DESC},
+            {property: 'age', direction: BaseSorter.SORT_DESC},
             {property: 'name'}
         ]);
         expect($store.doRequest).toHaveBeenCalledWith({

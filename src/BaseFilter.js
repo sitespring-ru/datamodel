@@ -6,13 +6,13 @@ import {isObject, isString} from "lodash-es";
  * @homepage https://sitespring.ru
  * @licence Proprietary
  *
- * @class Filter Represent basic filter
+ * @class BaseFilter Represent basic filter
  * @property {String|Number} id
  * @property {String} property
  * @property {String|Array|Number|Boolean} value
  * @property {String} operator
  */
-export default class Filter extends BaseClass {
+export default class BaseFilter extends BaseClass {
     static OPERATOR_GREATER = '>'
     static OPERATOR_GREATER_OR_EQUAL = '>='
     static OPERATOR_LOWER = '<'
@@ -77,7 +77,7 @@ export default class Filter extends BaseClass {
 
 
     static parseFromMixed(mixed) {
-        if (mixed instanceof Filter) {
+        if (mixed instanceof BaseFilter) {
             return mixed;
         }
         if (isObject(mixed)) {

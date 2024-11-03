@@ -1,5 +1,5 @@
-import Model from "../../src/Model.js";
-import Store from "../../src/Store.js";
+import BaseModel from "../../src/BaseModel.js";
+import BaseStore from "../../src/BaseStore.js";
 
 /**
  * Testing iterator protocol
@@ -10,12 +10,12 @@ import Store from "../../src/Store.js";
  */
 
 describe('Iterator protocol', () => {
-    const store = new Store();
+    const store = new BaseStore();
     store.loadModels([{id: 1}, {id: 37}, {id: 7}]);
 
     test('Цикл for of', () => {
         for (let model of store) {
-            expect(model).toBeInstanceOf(Model);
+            expect(model).toBeInstanceOf(BaseModel);
         }
     });
 });

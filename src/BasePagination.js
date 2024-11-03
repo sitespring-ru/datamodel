@@ -1,5 +1,5 @@
 /**
- * @class Pagination Represent paging data
+ * @class BasePagination Represent paging data
  *
  * @author Evgeny Shevtsov, info@sitespring.ru
  * @homepage https://sitespring.ru
@@ -10,7 +10,7 @@
  * @property {number} pageSize Размер страницы
  * @property {number} totalCount Общее количество Моделей
  */
-export default class Pagination {
+export default class BasePagination {
     constructor(props) {
         this.pageCount = props.pageCount || 0;
         this.currentPage = props.currentPage || 1;

@@ -4,19 +4,19 @@
  * @licence Proprietary
  */
 import BaseClass from "./src/BaseClass.js";
-import Model from "./src/Model.js"
-import Proxy from "./src/Proxy.js"
-import Store from "./src/Store.js"
-import Pagination from "./src/Pagination.js"
-import Filter from "./src/Filter.js"
-import Sorter from "./src/Sorter.js"
+import BaseModel from "./src/BaseModel.js"
+import BaseProxy from "./src/BaseProxy.js"
+import BaseStore from "./src/BaseStore.js"
+import BasePagination from "./src/BasePagination.js"
+import BaseFilter from "./src/BaseFilter.js"
+import BaseSorter from "./src/BaseSorter.js"
 
 export {
     BaseClass,
-    Model,
-    Proxy,
-    Store,
-    Pagination,
-    Filter,
-    Sorter
+    BaseModel,
+    BaseProxy,
+    BaseStore,
+    BasePagination,
+    BaseFilter,
+    BaseSorter
 }

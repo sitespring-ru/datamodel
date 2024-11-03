@@ -3,14 +3,14 @@
  *
  * @licence Proprietary
  */
-import Model from "../../src/Model.js";
+import BaseModel from "../../src/BaseModel.js";
 import {expect, jest} from '@jest/globals'
-import BaseStore from "../../src/Store.js";
+import BaseStore from "../../src/BaseStore.js";
 
 // Эмулируем модуль целиком
 jest.mock('axios');
 
-class TestModel extends Model {
+class TestModel extends BaseModel {
     get entityName() {
         return 'test-model';
     }

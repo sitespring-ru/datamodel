@@ -3,15 +3,15 @@
  * @homepage https://sitespring.ru
  * @licence Proprietary
  */
-import Model from "../../src/Model.js"
-import Proxy from "../../src/Proxy.js"
-import Store from "../../src/Store.js"
+import BaseModel from "../../src/BaseModel.js"
+import BaseProxy from "../../src/BaseProxy.js"
+import BaseStore from "../../src/BaseStore.js"
 import {expect, jest} from "@jest/globals";
 
-class TestModel extends Model {
+class TestModel extends BaseModel {
 }
 
-class TestProxy extends Proxy {
+class TestProxy extends BaseProxy {
 }
 
 // Эмулируем модуль целиком
@@ -19,7 +19,7 @@ class TestProxy extends Proxy {
 
 describe('Fetching model test', () => {
     test('Fetch model using stores proxy', async () => {
-        const store = new Store({
+        const store = new BaseStore({
             model: TestModel,
             proxy: TestProxy
         });

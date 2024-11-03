@@ -1,9 +1,9 @@
 import {difference, forEach, get, has, isArray, isEmpty, isEqual, isFunction, isString, keys, mapValues, pick, reduce, unset, values} from "lodash-es";
 import BaseClass from "./BaseClass.js";
-import Proxy from "./Proxy.js";
+import BaseProxy from "./BaseProxy.js";
 import validate from "validate.js";
 import dayjs from "dayjs";
-import Store from "./Store.js";
+import BaseStore from "./BaseStore.js";
 
 
 /**
@@ -12,9 +12,9 @@ import Store from "./Store.js";
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
  *
  * @property {Boolean} isPhantom Имеет ли модель id в базе данных на стороне сервера
- * @property {?Store} store Referenced store in which context this model belongs to
+ * @property {?BaseStore} store Referenced store in which context this model belongs to
  */
-export default class Model extends BaseClass {
+export default class BaseModel extends BaseClass {
     /**
      * Фильтр преобразования значения для аттрибутов
      * Если метод, то передается первым аргументом значение для преобразования
@@ -30,49 +30,49 @@ export default class Model extends BaseClass {
     /**
      * Обьект описания связей
      * @typedef {Object} RelationDefinition
-     * @property {typeof Model} model Конструктор Модели в случае связи hasOne
-     * @property {?typeof Store} store Конструктор Хранилища в случае связи hasMany или по умолчанию будет использовано BaseStore
+     * @property {typeof BaseModel} model Конструктор Модели в случае связи hasOne
+     * @property {?typeof BaseStore} store Конструктор Хранилища в случае связи hasMany или по умолчанию будет использовано BaseStore
      * @property {?String} foreignKey Внешний ключ для сортировки Хранилища
      * @property {("hasOne"|"hasMany")} type Тип связи
      * */
 
     /**
      * Событие смены значения аттрибута
-     * @event Model#EVENT_REQUEST_START
+     * @event BaseModel#EVENT_REQUEST_START
      * @param {AttributesMap} changed Объект измененных аттрибутов
      * */
     static EVENT_ATTRIBUTES_CHANGE = 'attributesChanged';
 
     /**
      * Событие получения данных с сервера
-     * @event Model#EVENT_FETCH
+     * @event BaseModel#EVENT_FETCH
      * @param {AttributesMap} data Объект данных
      * */
     static EVENT_FETCH = 'fetch';
 
     /**
      * Событие создание новой модели на сервере
-     * @event Model#EVENT_CREATE
+     * @event BaseModel#EVENT_CREATE
      * @param {AttributesMap} data Объект полученных аттрибутов
      * * */
     static EVENT_CREATE = 'create';
 
     /**
      * Событие сохранения данных на сервере
-     * @event Model#EVENT_SAVE
+     * @event BaseModel#EVENT_SAVE
      * @param {AttributesMap} changed Объект сохраненных аттрибутов
      * */
     static EVENT_SAVE = 'save';
 
     /**
      * Событие удаления Модели на сервере
-     * @event Model#EVENT_DELETE
+     * @event BaseModel#EVENT_DELETE
      * */
     static EVENT_DELETE = 'delete';
 
     /**
      * Событие изменения данных об ошибках валидации
-     * @event Model#EVENT_ERRORS_CHANGE
+     * @event BaseModel#EVENT_ERRORS_CHANGE
      * @param {Object} data Текущий стек ошибок
      * */
     static EVENT_ERRORS_CHANGE = 'errorschange';
@@ -295,7 +295,7 @@ export default class Model extends BaseClass {
 
         /**
          * Стек кешированных связанных Моделей/Хранилищ
-         * @type {Object<String,(Model|Store)>}
+         * @type {Object<String,(BaseModel|BaseStore)>}
          * @private
          * */
         this.__cachedRelations = {};
@@ -381,7 +381,7 @@ export default class Model extends BaseClass {
         }
 
         if (type === 'hasMany') {
-            const storeConstructorReal = storeConstructor || Store;
+            const storeConstructorReal = storeConstructor || BaseStore;
             Object.defineProperty(this, name, {
                 get() {
                     if (!this.__cachedRelations[name]) {
@@ -696,13 +696,13 @@ export default class Model extends BaseClass {
      * @return {Object}
      * */
     get proxyConfig() {
-        return this.initialConfig.proxy || Proxy;
+        return this.initialConfig.proxy || BaseProxy;
     };
 
 
     /**
      * Создание прокси для запросов в контексте Модели
-     * @return {Proxy} Созданный экземпляр Прокси
+     * @return {BaseProxy} Созданный экземпляр Прокси
      * */
     get proxy() {
         if (!this.__innerProxy) {
@@ -714,14 +714,14 @@ export default class Model extends BaseClass {
 
 
     configureProxy(config) {
-        if (config instanceof Proxy) {
+        if (config instanceof BaseProxy) {
             return config;
         }
         if (typeof config === 'function') {
             return new config();
         }
         if (typeof config === 'object') {
-            const ct = config.type || Proxy;
+            const ct = config.type || BaseProxy;
             unset(config, 'type');
             return new ct(config);
         }
@@ -851,7 +851,7 @@ export default class Model extends BaseClass {
     __loadRelationsData(relatedData) {
         forEach(relatedData, (data, relationName) => {
             const relation = this[relationName];
-            if (relation instanceof Store) {
+            if (relation instanceof BaseStore) {
                 relation.clear()
                 relation.loadModels(data)
             } else {
@@ -925,7 +925,7 @@ export default class Model extends BaseClass {
      * Helper to make fetch request by id and populate model
      * @param {Any} id The identifier to fetch
      * @param {Object} extraConfig The extra configuration to be passed to fetch method
-     * @return {Model}
+     * @return {BaseModel}
      * */
     static async fetchOne(id, extraConfig = {}) {
         const model = new this();
@@ -937,7 +937,7 @@ export default class Model extends BaseClass {
 
     /**
      * Helper to make search request and populate new models
-     * @return {Model[]}
+     * @return {BaseModel[]}
      * */
     static async search(query, extraParams = {}) {
 

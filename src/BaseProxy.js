@@ -8,7 +8,7 @@ import BaseClass from "./BaseClass.js";
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
  *
  */
-export default class Proxy extends BaseClass {
+export default class BaseProxy extends BaseClass {
     /**
      * @typedef {Object} AxiosInstance Экземпляр axios
      * @see https://github.com/axios/axios#creating-an-instance
@@ -41,25 +41,25 @@ export default class Proxy extends BaseClass {
      * */
 
     /**
-     * @event Proxy#EVENT_REQUEST_START Событие при начале запроса
+     * @event BaseProxy#EVENT_REQUEST_START Событие при начале запроса
      * @param {AxiosRequestConfig} $config Конфигурация запроса
      * */
     static EVENT_REQUEST_START = 'requestStart';
 
     /**
-     * @event Proxy#EVENT_REQUEST_END Событие при окончании запроса
+     * @event BaseProxy#EVENT_REQUEST_END Событие при окончании запроса
      * @param {AxiosResponseSchema} $response
      * */
     static EVENT_REQUEST_END = 'requestEnd';
 
     /**
-     * @event Proxy#EVENT_REQUEST_FAILED Событие при ошибке
+     * @event BaseProxy#EVENT_REQUEST_FAILED Событие при ошибке
      * @param {AxiosErrorSchema} $error
      * */
     static EVENT_REQUEST_FAILED = 'requestFailed';
 
     /**
-     * @event Proxy#EVENT_REQUEST_SUCCESS Событие при успехе
+     * @event BaseProxy#EVENT_REQUEST_SUCCESS Событие при успехе
      * @param {Object} $data Данные полученные из ответа
      * */
     static EVENT_REQUEST_SUCCESS = 'requestSuccess';
@@ -103,7 +103,7 @@ export default class Proxy extends BaseClass {
      * */
     static globalDefaultProxyConfig() {
         return {
-            class: Proxy
+            class: BaseProxy
         }
     }
 
@@ -291,10 +291,10 @@ export default class Proxy extends BaseClass {
      * @param {?AxiosRequestConfig} [extraConfig] - Конфигурация для запроса axios
      * @return {Promise}
      *
-     * @fires Proxy#EVENT_REQUEST_START
-     * @fires Proxy#EVENT_REQUEST_END
-     * @fires Proxy#EVENT_REQUEST_SUCCESS
-     * @fires Proxy#EVENT_REQUEST_FAILED
+     * @fires BaseProxy#EVENT_REQUEST_START
+     * @fires BaseProxy#EVENT_REQUEST_END
+     * @fires BaseProxy#EVENT_REQUEST_SUCCESS
+     * @fires BaseProxy#EVENT_REQUEST_FAILED
      * */
     async doRequest(extraConfig = {}) {
         const headers = this.requestHeaders;

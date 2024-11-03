@@ -1,11 +1,11 @@
-import Model from "../../src/Model.js";
+import BaseModel from "../../src/BaseModel.js";
 
 /**
  * @author Evgeny Shevtsov, info@sitespring.ru
  * @homepage https://sitespring.ru
  * @licence Proprietary
  */
-class TestModel extends Model {
+class TestModel extends BaseModel {
     get entityName() {
         return 'test-model';
     }
