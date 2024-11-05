@@ -5,7 +5,7 @@ import mitt from "mitt";
  * Базовый класс поддерживающий конфигурацию и события
  *
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
- * @property {Boolean} hasEmitter
+ * @property {Boolean} hasEmitter Whether entity triggering and listening events
  *
  */
 export default class BaseClass {
@@ -76,16 +76,6 @@ export default class BaseClass {
     toString() {
         // Если не задан name возвращаем по дефолту [object Object]
         return this.constructor.name || super.toString();
-    }
-
-
-    /**
-     * Should class support emitting events
-     * false by default for
-     * @return {Boolean}
-     * */
-    get hasEmitter() {
-        return Boolean(this.initialConfig.hasEmitter);
     }
 
 
