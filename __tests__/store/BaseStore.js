@@ -140,7 +140,7 @@ describe('Работа с моделями', () => {
         $store.doRequest = jest.fn();
 
         await $store.ensureFetched();
-        expect($store.doRequest).toHaveBeenCalledWith({url: 'https://api.com', params: {}});
+        expect($store.doRequest).toHaveBeenCalledWith({method: "GET", url: 'https://api.com', params: {}});
 
         await $store.ensureFetched();
         // Второй раз не был вызван запрос
@@ -230,6 +230,7 @@ describe('Работа с фильтрами', () => {
         $store.doRequest = jest.fn();
         await $store.fetch();
         expect($store.doRequest).toHaveBeenCalledWith({
+            method: 'GET',
             url: 'https://api.com',
             params: {
                 filters: "age>=16:name=true"
@@ -244,7 +245,8 @@ describe('Работа с фильтрами', () => {
 
         await $store.addFilter({property: 'name'});
         expect($store.doRequest).toHaveBeenCalledWith({
-            url: '/base-model',
+            method: "GET",
+            url: 'base-model',
             params: {
                 filters: "name=true"
             }
@@ -255,7 +257,8 @@ describe('Работа с фильтрами', () => {
             {property: 'name'}
         ]);
         expect($store.doRequest).toHaveBeenCalledWith({
-            url: '/base-model',
+            method: 'GET',
+            url: 'base-model',
             params: {
                 filters: "age>=16:name=true"
             }
@@ -263,7 +266,8 @@ describe('Работа с фильтрами', () => {
 
         $store.removeAllFilters();
         expect($store.doRequest).toHaveBeenCalledWith({
-            url: '/base-model',
+            method: 'GET',
+            url: 'base-model',
             params: {}
         });
     });
@@ -319,6 +323,7 @@ describe('Работа с сортировкой', () => {
         $store.doRequest = jest.fn();
         await $store.fetch();
         expect($store.doRequest).toHaveBeenCalledWith({
+            method: 'GET',
             url: 'https://api.com',
             params: {
                 sort: '-age,name'
@@ -333,7 +338,8 @@ describe('Работа с сортировкой', () => {
 
         await $store.addSorter({property: 'name'});
         expect($store.doRequest).toHaveBeenCalledWith({
-            url: '/base-model',
+            method: 'GET',
+            url: 'base-model',
             params: {
                 sort: "name"
             }
@@ -344,7 +350,8 @@ describe('Работа с сортировкой', () => {
             {property: 'name'}
         ]);
         expect($store.doRequest).toHaveBeenCalledWith({
-            url: '/base-model',
+            method: "GET",
+            url: 'base-model',
             params: {
                 sort: "-age,name"
             }
@@ -352,7 +359,8 @@ describe('Работа с сортировкой', () => {
 
         $store.removeAllSorters();
         expect($store.doRequest).toHaveBeenCalledWith({
-            url: '/base-model',
+            method: 'GET',
+            url: 'base-model',
             params: {}
         });
     });
@@ -389,7 +397,6 @@ describe('Пагинация', () => {
     });
 
 
-
     test('Получение с сервера', async () => {
         const $store = new PersonsTestStore({isPaginated: true, pageSize: 2});
         //  Сервер вернет след страницу данных
@@ -406,7 +413,7 @@ describe('Пагинация', () => {
         expect($store.hasNextPage).toBeFalsy(); // Not fetched yet
 
         await $store.fetch();
-        expect($store.doRequest).toHaveBeenCalledWith({url: '/base-model', params: {limit: 2, page: 1}});
+        expect($store.doRequest).toHaveBeenCalledWith({method: 'GET', url: 'base-model', params: {limit: 2, page: 1}});
         expect($store.count).toEqual(2);
         expect($store.hasNextPage).toBeTruthy();
 
@@ -421,7 +428,11 @@ describe('Пагинация', () => {
             }
         });
         await $store.fetch();
-        expect($store.doRequest).toHaveBeenCalledWith({url: '/base-model', params: {limit: 2, page: 2}});
+        expect($store.doRequest).toHaveBeenCalledWith({
+            method: 'GET',
+            url: 'base-model',
+            params: {limit: 2, page: 2}
+        });
         expect($store.count).toEqual(3);
         // Были загружены все модели
         expect($store.hasNextPage).toBeFalsy();

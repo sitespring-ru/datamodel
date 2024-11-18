@@ -6,7 +6,12 @@ import BaseClass from "./BaseClass.js";
  * Базовый класс для запросов - обертка для axios с событиями и токеном авторизации
  *
  * @author Evgeny Shevtsov, g.info.hh@gmail.com
- *
+ * @property {string} baseUrl default is '/'
+ * @property {string} withCredentials default is false
+ * @property {string} extraParams default is {}
+ * @property {string} extraHeaders default is {}
+ * @property {string} envelopeName default is 'data'
+ * @property {string} defaultErrorMessage default is 'Unknown network error'
  */
 export default class BaseProxy extends BaseClass {
     /**
@@ -143,28 +148,16 @@ export default class BaseProxy extends BaseClass {
         this.responseData = null;
     }
 
-    get baseUrl() {
-        return this.initialConfig.baseUrl || '/';
-    }
-
-    get withCredentials() {
-        return this.initialConfig.withCredentials || false;
-    }
-
-    get extraParams() {
-        return this.initialConfig.extraParams || {};
-    }
-
-    get extraHeaders() {
-        return this.initialConfig.extraHeaders || {};
-    }
-
-    get envelopeName() {
-        return this.initialConfig.envelopeName || 'data';
-    }
-
-    get defaultErrorMessage() {
-        return this.initialConfig.defaultErrorMessage || 'Unknown network error';
+    get defaults() {
+        return {
+            ...super.defaults,
+            baseUrl: '/',
+            withCredentials: false,
+            extraParams: {},
+            extraHeaders: {},
+            envelopeName: 'data',
+            defaultErrorMessage: 'Unknown network error'
+        };
     }
 
     /**

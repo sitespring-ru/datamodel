@@ -503,7 +503,7 @@ export default class BaseStore extends BaseClass {
         if (this.initialConfig.fetchUrl) {
             return this.initialConfig.fetchUrl;
         }
-        return '/' + (new this.model()).entityName;
+        return (new this.model()).entityName;
     }
 
 
@@ -522,7 +522,7 @@ export default class BaseStore extends BaseClass {
 
         const url = this.buildFetchUrl();
         // lodash merge to do deep merging
-        const requestConfig = merge({}, {url, params}, {...config});
+        const requestConfig = merge({method: 'GET'}, {url, params}, {...config});
         try {
             const responseData = await this.doRequest(requestConfig);
             const models = this.parseModelsFromResponseData(responseData);
@@ -548,11 +548,35 @@ export default class BaseStore extends BaseClass {
      * @param {Object} extraConfig The extra configuration for model fetching
      * */
     async fetchOne(id, extraConfig = {}) {
-        const model = new this.model({
+        const model = new this.model({id}, {
             proxy: this.proxy
         });
-        model.setAttribute(model.idProperty, id);
-        return model.fetch(extraConfig);
+        await model.fetch(extraConfig);
+        return model;
+    }
+
+
+    /**
+     * Make fetching request to populate models by array of ids
+     * @param {Array} ids
+     * @param {Object} config Extra config to be passed to [[fetch]] method
+     * @return {Promise<Object>}
+     * */
+    async fetchModels(ids, config = {}) {
+        if (!Array.isArray(ids)) {
+            throw new Error('Expect ids to be array of id')
+        }
+        this.clear();
+        this.addFilter({
+            id: 'byIds',
+            property: 'id',
+            operator: BaseFilter.OPERATOR_IN,
+            value: ids
+        });
+
+        return this.fetch(config).finally(() => {
+            this.removeFilter('byIds');
+        });
     }
 
 

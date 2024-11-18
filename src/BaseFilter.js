@@ -126,6 +126,6 @@ export default class BaseFilter extends BaseClass {
 
     toString() {
         const value = isString(this.value) ? this.value : JSON.stringify(this.value);
-        return `${this.id}${this.operator}${value}`;
+        return `${this.property}${this.operator}${value}`;
     }
 }

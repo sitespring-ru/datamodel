@@ -209,7 +209,8 @@ describe('Конфигурация связанных классов', () => {
         await theBook.articles.fetch();
         expect(theBook.articles.model).toEqual(Article);
         expect(theBook.articles.doRequest).toHaveBeenCalledWith({
-            url: '/article'
+            method: 'GET',
+            url: 'article'
             , params: {
                 filters: "book_id=1"
             }

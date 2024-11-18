@@ -22,6 +22,7 @@ describe('Search request test', () => {
 
         expect(store.doRequest).toHaveBeenCalledWith({
             url: 'https://api.com',
+            method: 'GET',
             params: {
                 q: 'Foo bar'
             }
@@ -38,6 +39,7 @@ describe('Search request test', () => {
 
         expect(store.doRequest).toHaveBeenCalledWith({
             url: 'https://api.com',
+            method: 'GET',
             params: {}
         });
     });
@@ -58,6 +60,7 @@ describe('Search request test', () => {
 
         expect(store.doRequest).toHaveBeenCalledWith({
             url: 'https://api.com',
+            method: 'GET',
             params: {
                 queryText: 'baz',
                 filters: "age>=16:name=true"
