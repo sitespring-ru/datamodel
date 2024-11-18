@@ -936,10 +936,9 @@ export default class BaseModel extends BaseClass {
 
 
     /**
-     * Helper to make search request and populate new models
-     * @return {BaseModel[]}
-     * */
-    static async search(query, extraParams = {}) {
-
+    * Retrieve internala data by path previous loaded by loadData method
+    * */
+    getData(path = '') {
+        return path === '' ? this.__initialData : get(this.__initialData, path);
     }
 }
