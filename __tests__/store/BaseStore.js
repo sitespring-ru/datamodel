@@ -23,6 +23,10 @@ class PersonTestModel extends BaseModel {
             age: null
         };
     }
+
+    get sumTestProperty(){
+        return 2;
+    }
 }
 
 class PersonsTestStore extends BaseStore {
@@ -114,6 +118,7 @@ describe('Работа с моделями', () => {
         const $store = new PersonsTestStore();
         $store.loadModels([{id: 666, name: 'xoxa1', age: 11}, {id: 1, name: 'xoxa2'}, {id: 2, age: 33}]);
         expect($store.sumBy('age')).toEqual(44);
+        expect($store.sumBy('sumTestProperty')).toEqual(6);
     })
 
     test('Загрузка с сервера', (done) => {

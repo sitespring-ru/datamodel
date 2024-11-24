@@ -969,7 +969,7 @@ export default class BaseStore extends BaseClass {
      * @return {Number}
      * */
     sumBy(attributeName) {
-        return sumBy(this.toArray(), attributeName);
+        return sumBy(this.models, attributeName);
     }
 
 
