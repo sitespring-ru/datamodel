@@ -1,4 +1,4 @@
-import {each, find, get, isEmpty, isEqual, isFunction, isMatch, map, merge, remove, size, sumBy, unset} from "lodash-es";
+import {each, every, find, get, isEmpty, isEqual, isFunction, isMatch, map, merge, remove, size, sumBy, unset} from "lodash-es";
 import BaseClass from "./BaseClass.js";
 import BaseModel from "./BaseModel.js";
 import BaseProxy from "./BaseProxy.js";
@@ -138,6 +138,11 @@ export default class BaseStore extends BaseClass {
         if (Array.isArray(models)) {
             this.loadModels(models)
         }
+
+        /**
+         * @private
+         * */
+        this.__isDirty = false;
     }
 
     get defaults() {
@@ -361,6 +366,7 @@ export default class BaseStore extends BaseClass {
     loadModel(modelOrAttrs) {
         const {model} = this.__internalAdd(modelOrAttrs);
         this.emit(this.constructor.EVENT_MODELS_CHANGE, [model]);
+        this.__isDirty = true;
         return model;
     }
 
@@ -386,6 +392,7 @@ export default class BaseStore extends BaseClass {
         });
 
         this.emit(this.constructor.EVENT_MODELS_CHANGE, handledModels);
+        this.__isDirty = true;
         return handledModels;
     }
 
@@ -449,6 +456,7 @@ export default class BaseStore extends BaseClass {
         if (removeModels.length) {
             this.emit(this.constructor.EVENT_MODELS_CHANGE, removeModels);
             this.emit(this.constructor.EVENT_MODELS_REMOVED, removeModels);
+            this.__isDirty = true;
         }
         return removeModels.length;
     }
@@ -491,6 +499,7 @@ export default class BaseStore extends BaseClass {
             this.emit(this.constructor.EVENT_MODELS_CHANGE, this.models);
             this.emit(this.constructor.EVENT_MODELS_REMOVED, this.models);
             this._innerModels = [];
+            this.__isDirty = true;
         }
 
         if (this.isPaginated) {
@@ -534,6 +543,7 @@ export default class BaseStore extends BaseClass {
 
             // сохраняем флаг о том что запрос был успешно сделан
             this._isFetched = true;
+            this.commitChanges();
             this.emit(this.constructor.EVENT_FETCH, responseData);
             return Promise.resolve(responseData);
         } catch (e) {
@@ -576,6 +586,7 @@ export default class BaseStore extends BaseClass {
 
         return this.fetch(config).finally(() => {
             this.removeFilter('byIds');
+            this.commitChanges();
         });
     }
 
@@ -599,6 +610,7 @@ export default class BaseStore extends BaseClass {
         this._searchString = value.trim();
         if (!isEqual(oldValue, this._searchString)) {
             this.emit(this.constructor.EVENT_SEARCH_CHANGE, this._searchString);
+            this.__isDirty = true;
         }
     }
 
@@ -638,6 +650,7 @@ export default class BaseStore extends BaseClass {
         if (!isEqual(filters, this._innerFilters)) {
             this.emit(this.constructor.EVENT_FILTERS_CHANGE, {oldFilters: filters, newFilters: this._innerFilters});
             this._handleAutoFiltering();
+            this.__isDirty = true;
         }
     }
 
@@ -666,6 +679,7 @@ export default class BaseStore extends BaseClass {
         if (!isEqual(oldFilters, this._innerFilters)) {
             this.emit(this.constructor.EVENT_FILTERS_CHANGE, {oldFilters, newFilters: this._innerFilters});
             this._handleAutoFiltering();
+            this.__isDirty = true;
         }
     }
 
@@ -681,6 +695,7 @@ export default class BaseStore extends BaseClass {
         if (!isEqual(oldFilters, this._innerFilters)) {
             this.emit(this.constructor.EVENT_FILTERS_CHANGE, {oldFilters: oldFilters, newFilters: this._innerFilters});
             this._handleAutoFiltering();
+            this.__isDirty = true;
         }
     }
 
@@ -694,6 +709,7 @@ export default class BaseStore extends BaseClass {
             this._innerFilters = [];
             this.emit(this.constructor.EVENT_FILTERS_CHANGE, {oldFilters: filters, newFilters: []});
             this._handleAutoFiltering();
+            this.__isDirty = true;
         }
     }
 
@@ -770,6 +786,7 @@ export default class BaseStore extends BaseClass {
             this._innerSorters = [];
             this.emit(this.constructor.EVENT_SORTERS_CHANGE, {oldSorters: sorters, newSorters: []});
             this._handleAutoSorting();
+            this.__isDirty = true;
         }
     }
 
@@ -787,6 +804,7 @@ export default class BaseStore extends BaseClass {
         if (!isEqual(oldSorters, this._innerSorters)) {
             this.emit(this.constructor.EVENT_SORTERS_CHANGE, {oldSorters, newSorters: this._innerSorters});
             this._handleAutoSorting();
+            this.__isDirty = true;
         }
     }
 
@@ -813,6 +831,7 @@ export default class BaseStore extends BaseClass {
         if (!isEqual(sorters, this._innerSorters)) {
             this.emit(this.constructor.EVENT_SORTERS_CHANGE, {oldSorters: sorters, newSorters: this._innerSorters});
             this._handleAutoSorting();
+            this.__isDirty = true;
         }
     }
 
@@ -829,6 +848,7 @@ export default class BaseStore extends BaseClass {
         if (!isEqual(oldSorters, this._innerSorters)) {
             this.emit(this.constructor.EVENT_SORTERS_CHANGE, {oldSorters, newSorters: this._innerSorters});
             this._handleAutoSorting();
+            this.__isDirty = true;
         }
     }
 
@@ -1020,5 +1040,15 @@ export default class BaseStore extends BaseClass {
         return new this.model(data, {
             proxy: this.proxy.constructor, // Model in store has the same proxy type
         });
+    }
+
+    commitChanges() {
+        this.__isDirty = false;
+    }
+
+
+    get isDirty() {
+        return this.__isDirty
+            || !every(this.models, m => !m.isDirty);
     }
 }
