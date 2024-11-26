@@ -1051,4 +1051,13 @@ export default class BaseStore extends BaseClass {
         return this.__isDirty
             || !every(this.models, m => !m.isDirty);
     }
+
+
+    /**
+     * Legacy method for population related data purpose
+     * @alias [[BaseStore.toArray()]]
+     * */
+    getSubmitValues() {
+        return this.toArray()
+    }
 }

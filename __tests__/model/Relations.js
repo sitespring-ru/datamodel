@@ -5,8 +5,7 @@
  */
 import BaseModel from "../../src/BaseModel.js";
 import BaseStore from "../../src/BaseStore.js";
-import axios from "axios";
-import {jest} from '@jest/globals'
+import {expect, jest} from '@jest/globals'
 
 // Эмулируем модуль целиком
 jest.mock('axios');
@@ -227,4 +226,120 @@ describe('Конфигурация связанных классов', () => {
             method: 'GET'
         });
     });
+});
+
+
+describe('Dirty state in relation', () => {
+    test('Fetch hasOne realtion', async () => {
+        const theBook = new Book();
+        theBook.proxy.doRequest = jest.fn().mockResolvedValue({
+            title: 'Книга 1',
+            author: {
+                name: 'Иванов П.'
+            }
+        });
+
+        await theBook.fetch();
+        expect(theBook.isDirty).toBeFalsy();
+        expect(theBook.author.isDirty).toBeFalsy();
+        theBook.author.name = 'foo';
+        expect(theBook.isDirty).toBeFalsy();
+        expect(theBook.isDirtyWithRelated).toBeTruthy();
+        expect(theBook.author.isDirty).toBeTruthy();
+    })
+
+    test('Add model to hasMany relation', async () => {
+        const theBook = new Book();
+        theBook.proxy.doRequest = jest.fn().mockResolvedValue({
+            title: 'Книга 1',
+            articles: [
+                {
+                    title: 'Артикл 1'
+                }, {
+                    title: 'Артикл 2'
+                }
+            ]
+        });
+
+        await theBook.fetch();
+        expect(theBook.isDirty).toBeFalsy();
+        expect(theBook.articles.isDirty).toBeFalsy();
+
+        theBook.articles.loadModel({id: 3, title: 'Article 3'})
+        expect(theBook.isDirty).toBeFalsy();
+        expect(theBook.isDirtyWithRelated).toBeTruthy();
+        expect(theBook.articles).toBeTruthy();
+    })
+
+    test('Edit model in hasMany relation', async () => {
+        const theBook = new Book();
+        theBook.proxy.doRequest = jest.fn().mockResolvedValue({
+            title: 'Книга 1',
+            articles: [
+                {
+                    id: 1,
+                    title: 'Артикл 1'
+                }, {
+                    title: 'Артикл 2'
+                }
+            ]
+        });
+
+        await theBook.fetch();
+        expect(theBook.isDirty).toBeFalsy();
+        expect(theBook.articles.isDirty).toBeFalsy();
+
+        const article = theBook.articles.findById(1)
+        article.title = 'Article 1'
+        expect(theBook.isDirty).toBeFalsy();
+        expect(theBook.isDirtyWithRelated).toBeTruthy();
+        expect(theBook.articles).toBeTruthy();
+    })
+});
+
+
+describe('Submit values with relations', () => {
+    test('collect data', () => {
+        const theBook = new Book({
+            id: 1,
+            title: 'Книга 1',
+            author: {
+                id: 1,
+                name: 'Иванов П.'
+            },
+            articles: [
+                {
+                    id: 1,
+                    title: 'Артикл 1'
+                }, {
+                    id: 2,
+                    title: 'Артикл 2'
+                },
+            ]
+        });
+
+        expect(theBook.getSubmitValues()).toEqual({
+            id: 1,
+            author_id: null,
+            title: 'Книга 1'
+        });
+        expect(theBook.getSubmitValues(undefined, true)).toEqual({
+            id: 1,
+            author_id: null,
+            title: 'Книга 1',
+            author: {
+                id:1,
+                name: 'Иванов П.'
+            },
+            articles: [
+                {
+                    id:1,
+                    title: 'Артикл 1'
+                }, {
+                    id:2,
+                    title: 'Артикл 2'
+                },
+            ]
+        });
+    })
 });

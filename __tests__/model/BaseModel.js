@@ -174,6 +174,7 @@ describe('CRUD rest api', () => {
         expect($model.isPhantom).toBeTruthy();
 
         $model.proxy.doRequest = jest.fn().mockResolvedValue({dob: '2000-02-03', name: 'Mike', id: 55});
+
         $model.on(TestModel.EVENT_CREATE, ($data) => {
             expect($data).toMatchObject({dob: '2000-02-03', name: 'Mike', id: 55});
             expect($model.isPhantom).toBeFalsy();
@@ -193,6 +194,7 @@ describe('CRUD rest api', () => {
             });
             done();
         });
+
         $model.save();
     });
 

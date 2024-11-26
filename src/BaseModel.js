@@ -1,4 +1,4 @@
-import {difference, forEach, get, has, isArray, isEmpty, isEqual, isFunction, isString, keys, mapValues, pick, reduce, unset, values} from "lodash-es";
+import {difference, every, forEach, get, has, isArray, isEmpty, isEqual, isFunction, isString, keys, mapValues, pick, reduce, unset, values} from "lodash-es";
 import BaseClass from "./BaseClass.js";
 import BaseProxy from "./BaseProxy.js";
 import validate from "validate.js";
@@ -452,6 +452,14 @@ export default class BaseModel extends BaseClass {
         return this.dirtyAttributesNames.length > 0;
     }
 
+    /**
+     * Dirty state with relation data
+     * @return {Boolean}
+     * */
+    get isDirtyWithRelated() {
+        return this.isDirty || !every(this.__cachedRelations, r => !r.isDirty)
+    }
+
 
     /**
      * @return {Any}
@@ -475,12 +483,20 @@ export default class BaseModel extends BaseClass {
     /**
      * Преобразование данных для отправки на сервер
      * @param {?Array} [names] Список аттрибутов или все
+     * @param {Boolean} withRelated Wheter collect relation data too
      * @return {Object.<String, *>}
      * */
-    getSubmitValues(names = null) {
+    getSubmitValues(names = null, withRelated = false) {
         const attrs = this.getAttributes(names);
         const filters = this.submitFilters;
-        return mapValues(attrs, (value, attr) => this.applyFilter(filters[attr], value));
+        const values = mapValues(attrs, (value, attr) => this.applyFilter(filters[attr], value));
+
+        if (withRelated) {
+            forEach(this.__cachedRelations, (relation, name) => {
+                values[name] = relation.getSubmitValues(undefined, true)
+            })
+        }
+        return values;
     }
 
 
@@ -857,26 +873,24 @@ export default class BaseModel extends BaseClass {
             } else {
                 relation.loadData(data)
             }
+            relation.commitChanges()
         })
     }
 
 
     /**
      * Save model to server
-     * @param {boolean} isDependDirty Whether to send request only when dirty attrs present
+     * @param {boolean} withRelative Whether to collect relative data as submitValues in request
      * */
-    async save(isDependDirty = true) {
-        if (this.isPhantom) {
-            isDependDirty = false;
-        }
-
-        if (isDependDirty && !this.isDirty) {
+    async save(withRelative = false) {
+        if (!this.isPhantom && (withRelative && !this.isDirtyWithRelated || !this.isDirty)) {
             return Promise.resolve({});
         }
 
         const url = this.isPhantom ? this.urls['create'] : this.urls['save'];
         const method = this.isPhantom ? this.verbs['create'] : this.verbs['save'];
-        const data = isDependDirty ? this.getSubmitValues(keys(this._dirtyAttributes)) : this.getSubmitValues();
+        const attrsToBeSend = this.isPhantom ? undefined : keys(this._dirtyAttributes);
+        const data = this.getSubmitValues(attrsToBeSend, withRelative);
         const event = this.isPhantom ? this.constructor.EVENT_CREATE : this.constructor.EVENT_SAVE;
         const responseData = await this.doRequest({url, method, data});
 
