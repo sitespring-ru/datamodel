@@ -32,6 +32,14 @@ class Author extends BaseModel {
             }
         }
     }
+
+    get rules() {
+        return {
+            name: {
+                presence: true
+            }
+        }
+    }
 }
 
 class Article extends BaseModel {
@@ -42,6 +50,14 @@ class Article extends BaseModel {
             ...super.fields,
             title: null
         };
+    }
+
+    get rules() {
+        return {
+            title: {
+                presence: true
+            }
+        }
     }
 }
 
@@ -328,18 +344,60 @@ describe('Submit values with relations', () => {
             author_id: null,
             title: 'Книга 1',
             author: {
-                id:1,
+                id: 1,
                 name: 'Иванов П.'
             },
             articles: [
                 {
-                    id:1,
+                    id: 1,
                     title: 'Артикл 1'
                 }, {
-                    id:2,
+                    id: 2,
                     title: 'Артикл 2'
                 },
             ]
         });
     })
 });
+
+
+describe('Validation with relations', () => {
+    test('validate model', () => {
+        const theBook = new Book();
+        theBook.loadData({
+            id: 1,
+            title: 'Книга 1',
+            author: {
+                id: 1
+            }
+        });
+
+        expect(theBook.validateWithRelative()).toBeFalsy();
+        expect(theBook.errors).toEqual({
+            author: {
+                name: ["can't be blank"]
+            }
+        })
+    })
+
+    test('validate store', () => {
+        const theBook = new Book({
+            id: 1,
+            title: 'Книга 1',
+            articles: [
+                {
+                    id: 1
+                }, {
+                    id: 2,
+                    title: 'Article 2'
+                },
+            ]
+        });
+        expect(theBook.validateWithRelative()).toBeFalsy();
+        expect(theBook.errors).toEqual({
+            'articles[0]': {
+                title: ["can't be blank"]
+            }
+        })
+    })
+})

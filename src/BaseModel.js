@@ -657,6 +657,34 @@ export default class BaseModel extends BaseClass {
 
 
     /**
+     * Run validation recursively for relations
+     * @return {boolean}
+     * */
+    validateWithRelative(names = null, extraConfig = null) {
+        if (!this.validate(names, extraConfig)) {
+            return false;
+        }
+
+        forEach(this.__cachedRelations, (relation, name) => {
+            if (relation instanceof BaseStore) {
+                relation.models.forEach((item, i) => {
+                    if (!item.validateWithRelative()) {
+                        this.errors[`${name}[${i}]`] = item.errors;
+                    }
+                })
+            }
+            if (relation instanceof BaseModel) {
+                if (!relation.validateWithRelative()) {
+                    this.errors[name] = relation.errors;
+                }
+            }
+        })
+
+        return !this.hasErrors;
+    }
+
+
+    /**
      * Метод установки ошибок
      * @param {Object.<string,array>} errors Объект ошибок, где ключи это аттрибуты, значения массив с ошибками
      * */
@@ -883,7 +911,8 @@ export default class BaseModel extends BaseClass {
      * @param {boolean} withRelative Whether to collect relative data as submitValues in request
      * */
     async save(withRelative = false) {
-        if (!this.isPhantom && (withRelative && !this.isDirtyWithRelated || !this.isDirty)) {
+        if (!this.isPhantom &&
+            ((withRelative && !this.isDirtyWithRelated) || (!withRelative && !this.isDirty))) {
             return Promise.resolve({});
         }
 
