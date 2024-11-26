@@ -193,10 +193,10 @@ describe('CRUD rest api', () => {
             });
             done();
         });
-        $model.create();
+        $model.save();
     });
 
-    test('Update', (done) => {
+    test('Creation', (done) => {
         const $model = new TestModel({created_at: '2022-03-11T01:33:07', name: 'Xoxa', id: 18}, {hasEmitter: true});
         expect($model.isDirty).toBeFalsy();
 
@@ -206,18 +206,18 @@ describe('CRUD rest api', () => {
         expect($model.getAttribute('name')).toEqual('Evgeny');
         expect($model.isDirty).toBeTruthy();
 
-        $model.on(TestModel.EVENT_SAVE, ($data) => {
+        const dataToBeSend = $model.getSubmitValues();
+
+        $model.on(TestModel.EVENT_CREATE, ($data) => {
             expect($data).toMatchObject({name: 'Mike'});
             expect($model.isDirty).toBeFalsy();
             expect($model.getAttribute('name', false)).toEqual('Mike');
             expect($model.getAttribute('name')).toEqual('Mike');
 
             expect($model.proxy.doRequest).toHaveBeenNthCalledWith(1, {
-                method: 'PUT'
-                , url: 'test-model/18'
-                , data: {
-                    "name": "Evgeny",
-                }
+                method: 'POST'
+                , url: 'test-model'
+                , data: dataToBeSend
             });
             done();
         });

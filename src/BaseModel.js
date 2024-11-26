@@ -862,39 +862,29 @@ export default class BaseModel extends BaseClass {
 
 
     /**
-     * Сохраняем данные на сервер
+     * Save model to server
+     * @param {boolean} isDependDirty Whether to send request only when dirty attrs present
      * */
-    async save() {
-        if (!this.isDirty) {
+    async save(isDependDirty = true) {
+        if (this.isPhantom) {
+            isDependDirty = false;
+        }
+
+        if (isDependDirty && !this.isDirty) {
             return Promise.resolve({});
         }
 
-        const url = this.urls['save'];
-        const method = this.verbs['save'];
-        const data = this.getSubmitValues(keys(this._dirtyAttributes));
+        const url = this.isPhantom ? this.urls['create'] : this.urls['save'];
+        const method = this.isPhantom ? this.verbs['create'] : this.verbs['save'];
+        const data = isDependDirty ? this.getSubmitValues(keys(this._dirtyAttributes)) : this.getSubmitValues();
+        const event = this.isPhantom ? this.constructor.EVENT_CREATE : this.constructor.EVENT_SAVE;
         const responseData = await this.doRequest({url, method, data});
 
         this.loadData(responseData);
         this.commitChanges();
         this.isPhantom = false;
-        this.emit(this.constructor.EVENT_SAVE, responseData);
+        this.emit(event, responseData);
 
-        return Promise.resolve(responseData);
-    }
-
-
-    /**
-     * Создаем модель на сервере
-     * */
-    async create() {
-        const url = this.urls['create'];
-        const method = this.verbs['create'];
-        const data = this.getSubmitValues();
-        const responseData = await this.doRequest({url, method, data});
-        this.loadData(responseData);
-        this.commitChanges();
-        this.isPhantom = false;
-        this.emit(this.constructor.EVENT_CREATE, responseData);
         return Promise.resolve(responseData);
     }
 
@@ -936,8 +926,8 @@ export default class BaseModel extends BaseClass {
 
 
     /**
-    * Retrieve internala data by path previous loaded by loadData method
-    * */
+     * Retrieve internala data by path previous loaded by loadData method
+     * */
     getData(path = '') {
         return path === '' ? this.__initialData : get(this.__initialData, path);
     }
