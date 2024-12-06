@@ -57,6 +57,7 @@ describe('Proxy extra headers tests', () => {
                 }
             }
         }
+
         ExtProxy.bearerToken = null;
         const proxy = new ExtProxy({
             extraHeaders: {
@@ -94,5 +95,30 @@ describe('Proxy extra headers tests', () => {
             'Authorization': 'Bearer 456',
             'Extra-ext2': 'true',
         })
+    })
+
+
+    test('Response headers', async () => {
+        const proxy = new BaseProxy();
+
+        // Эмулируем ответ
+        proxy.axios.request = jest.fn().mockResolvedValue({
+            status: 422,
+            data: {},
+            headers: {
+                'Server': 'nginx/1.14.0 (Ubuntu)',
+                'Date': 'Fri, 06 Dec 2024 16:18:55 GMT',
+                'Content-Type': 'application/pdf',
+                'Transfer-Encoding': 'chunked',
+                'Connection': 'keep-alive',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Expose-Headers': 'Content-Disposition'
+            }
+        });
+
+        await proxy.doRequest();
+        expect(proxy.getResponseHeader('Content-Type')).toBe('application/pdf');
+        expect(proxy.getResponseHeader('Foo')).toBeNull();
+        expect(proxy.responseStatus).toBe(422);
     })
 });

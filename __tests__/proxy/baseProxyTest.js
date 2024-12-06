@@ -39,7 +39,7 @@ describe('Base Proxy tests', ()=>{
                 expect(data).toEqual(mockData);
                 expect($proxy.emit).toBeCalledTimes(3);
                 expect($proxy.emit).toHaveBeenNthCalledWith(1, BaseProxy.EVENT_REQUEST_START, requestConfig);
-                expect($proxy.emit).toHaveBeenNthCalledWith(2, BaseProxy.EVENT_REQUEST_SUCCESS, data);
+                expect($proxy.emit).toHaveBeenNthCalledWith(2, BaseProxy.EVENT_REQUEST_SUCCESS, response);
                 expect($proxy.emit).toHaveBeenNthCalledWith(3, BaseProxy.EVENT_REQUEST_END, response);
                 expect($proxy.isRemoteError).toBeFalsy();
                 expect($proxy.isValidationError).toBeFalsy();

@@ -146,6 +146,17 @@ export default class BaseProxy extends BaseClass {
          * @member {?Object}
          * */
         this.responseData = null;
+
+        /**
+         * Stack of headers from last response
+         * @type {Object}
+         * */
+        this.responseHeaders = {};
+
+        /**
+         * @type {?Number} The http code of response
+         * */
+        this.responseStatus = null
     }
 
     get defaults() {
@@ -311,8 +322,10 @@ export default class BaseProxy extends BaseClass {
             this.emit(self.EVENT_REQUEST_START, config);
             response = await axiosInstance.request(config);
             this.responseData = this.parseResponseData(response);
+            this.responseHeaders = response.headers;
+            this.responseStatus = response.status;
 
-            this.emit(self.EVENT_REQUEST_SUCCESS, this.responseData);
+            this.emit(self.EVENT_REQUEST_SUCCESS, response);
             return Promise.resolve(this.responseData);
         } catch (e) {
             this.handleResponseError(e);
@@ -323,5 +336,9 @@ export default class BaseProxy extends BaseClass {
             this.emit(self.EVENT_REQUEST_END, response);
             await this.afterRequest(response);
         }
+    }
+
+    getResponseHeader(name) {
+        return get(this.responseHeaders, name, null)
     }
 }
