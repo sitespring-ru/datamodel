@@ -1,4 +1,22 @@
-import {difference, every, forEach, get, has, isArray, isEmpty, isEqual, isFunction, isString, keys, mapValues, pick, reduce, unset, values} from "lodash-es";
+import {
+    difference,
+    every,
+    first,
+    forEach,
+    get,
+    has, head,
+    isArray,
+    isEmpty,
+    isEqual,
+    isFunction,
+    isString,
+    keys,
+    mapValues,
+    pick,
+    reduce,
+    unset,
+    values
+} from "lodash-es";
 import BaseClass from "./BaseClass.js";
 import BaseProxy from "./BaseProxy.js";
 import validate from "validate.js";
@@ -689,7 +707,9 @@ export default class BaseModel extends BaseClass {
      * @param {Object.<string,array>} errors Объект ошибок, где ключи это аттрибуты, значения массив с ошибками
      * */
     setErrors(errors) {
-        this.errors = errors;
+        forEach(errors, (error, field) => {
+            this.errors[field] = isArray(error) ? head(error) : error;
+        })
         this.emit(this.constructor.EVENT_ERRORS_CHANGE, this.errors);
     }
 
@@ -700,11 +720,7 @@ export default class BaseModel extends BaseClass {
      * @param {String} error
      * */
     addError(field, error) {
-        if (has(this.errors, field)) {
-            this.errors[field].push(error);
-        } else {
-            this.errors[field] = [error];
-        }
+        this.errors[field] = isArray(error) ? head(error) : error;
         this.emit(this.constructor.EVENT_ERRORS_CHANGE, this.errors);
     }
 
@@ -731,7 +747,7 @@ export default class BaseModel extends BaseClass {
      * @return {?String}
      * */
     get firstErrorMessage() {
-        return get(values(this.errors), '[0][0]', null);
+        return head(values(this.errors));
     }
 
 
@@ -860,7 +876,7 @@ export default class BaseModel extends BaseClass {
         if (responseData[0] && responseData[0]['message']) {
             // Собираем ошибки в индексированный объект
             return reduce(responseData, (result, value) => {
-                result[value.field] = [value.message];
+                result[value.field] = value.message;
                 return result;
             }, {});
         }

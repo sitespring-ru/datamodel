@@ -71,7 +71,7 @@ describe('Валидация на стороне клиента', () => {
         $model.setAttributes({age: '122', name: '   qw'});
         expect($model.validate()).toBeFalsy();
         expect($model.hasErrors).toBeTruthy();
-        expect($model.errors).toEqual({age: ['must be less than 120'], name: ['is too short (minimum is 3 characters)']});
+        expect($model.errors).toEqual({age: 'must be less than 120', name: 'is too short (minimum is 3 characters)'});
         expect($model.firstErrorMessage).toEqual('must be less than 120');
     });
 
@@ -79,7 +79,7 @@ describe('Валидация на стороне клиента', () => {
     test('Валидация отдельных полей', () => {
         const $model = new TestModel({age: '122', name: '   qw'});
         expect($model.validate(['name'])).toBeFalsy();
-        expect($model.errors).toEqual({name: ['is too short (minimum is 3 characters)']});
+        expect($model.errors).toEqual({name: 'is too short (minimum is 3 characters)'});
     });
 
     test('Валидация перед запросом', async () => {
@@ -89,14 +89,14 @@ describe('Валидация на стороне клиента', () => {
             await $model.doRequest({}, true);
         } catch (e) {
             expect(e).toEqual('Before request validation failed');
-            expect($model.errors).toEqual({age: ['must be less than 120'], name: ['is too short (minimum is 3 characters)']});
+            expect($model.errors).toEqual({age: 'must be less than 120', name: 'is too short (minimum is 3 characters)'});
         }
         // Автовалидация выбранных аттрибутов
         try {
             await $model.doRequest({}, ['age']);
         } catch (e) {
             expect(e).toEqual('Before request validation failed');
-            expect($model.errors).toEqual({age: ['must be less than 120']});
+            expect($model.errors).toEqual({age: 'must be less than 120'});
         }
     });
 });

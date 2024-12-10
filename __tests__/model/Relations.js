@@ -375,7 +375,7 @@ describe('Validation with relations', () => {
         expect(theBook.validateWithRelative()).toBeFalsy();
         expect(theBook.errors).toEqual({
             author: {
-                name: ["can't be blank"]
+                name: "can't be blank"
             }
         })
     })
@@ -396,7 +396,7 @@ describe('Validation with relations', () => {
         expect(theBook.validateWithRelative()).toBeFalsy();
         expect(theBook.errors).toEqual({
             'articles[0]': {
-                title: ["can't be blank"]
+                title: "can't be blank"
             }
         })
     })
