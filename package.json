@@ -1,6 +1,6 @@
 {
     "name": "@sitespring/datamodel",
-    "version": "3.0.10",
+    "version": "3.0.11",
     "description": "Базовые классы для работы с данными: Model, Store, Proxy",
     "main": "index.js",
     "type": "module",

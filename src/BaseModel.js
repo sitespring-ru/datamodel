@@ -200,11 +200,15 @@ export default class BaseModel extends BaseClass {
      * Правила валидации
      * По умолчанию используется библиотека https://validatejs.org/
      * @see https://validatejs.org/
+     * @example
+     * get rules() {
+     *         return {
+     *             id: {numericality: true}
+     *         }
+     *     }
      * */
     get rules() {
-        return {
-            id: {numericality: true}
-        }
+        return {}
     }
 
 
