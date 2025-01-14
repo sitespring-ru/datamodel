@@ -78,6 +78,16 @@ export default class BaseStore extends BaseClass {
 
 
     /**
+     * Генерация id для фантомной Модели
+     * */
+    static generateId() {
+        if (!this.__generatedLastID) {
+            this.__generatedLastID = 0;
+        }
+        return `${this.name}-${++this.__generatedLastID}`;
+    }
+
+    /**
      * @param {Object} config Дополнительная конфигурация
      @param {Array} models Initail models data to be loaded to store     * */
     constructor(config = {}, models = []) {
@@ -139,6 +149,10 @@ export default class BaseStore extends BaseClass {
             this.loadModels(models)
         }
 
+        if (!this.initialConfig.id) {
+            this.initialConfig.id = this.constructor.generateId() // Auto generate id
+        }
+
         /**
          * @private
          * */
@@ -165,6 +179,10 @@ export default class BaseStore extends BaseClass {
         };
     }
 
+
+    get id() {
+        return this.initialConfig.id;
+    }
 
     get model() {
         return this.initialConfig.model;
@@ -425,7 +443,7 @@ export default class BaseStore extends BaseClass {
         }
 
 
-        model.store = this;
+        model.linkToStore(this)
         model.commitChanges();
         model.isPhantom = !!isPhantom;
         this._innerModels.push(model);
@@ -578,10 +596,7 @@ export default class BaseStore extends BaseClass {
         }
         this.clear();
         this.addFilter({
-            id: 'byIds',
-            property: 'id',
-            operator: BaseFilter.OPERATOR_IN,
-            value: ids
+            id: 'byIds', property: 'id', operator: BaseFilter.OPERATOR_IN, value: ids
         });
 
         return this.fetch(config).finally(() => {
@@ -1048,8 +1063,7 @@ export default class BaseStore extends BaseClass {
 
 
     get isDirty() {
-        return this.__isDirty
-            || !every(this.models, m => !m.isDirty);
+        return this.__isDirty || !every(this.models, m => !m.isDirty);
     }
 
 

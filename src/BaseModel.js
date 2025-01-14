@@ -1,7 +1,6 @@
 import {
     difference,
-    every,
-    first,
+    every, find,
     forEach,
     get,
     has, head,
@@ -13,7 +12,7 @@ import {
     keys,
     mapValues,
     pick,
-    reduce,
+    reduce, remove,
     unset,
     values
 } from "lodash-es";
@@ -338,7 +337,11 @@ export default class BaseModel extends BaseClass {
         this.loadData(this.__initialData);
         this.commitChanges();
 
-        this.store = null;
+        /**
+         * Stack of stores which this model belongs to for handling events
+         * @type {Array<BaseStore>}
+         * */
+        this.__belongsToStores = [];
     }
 
 
@@ -946,7 +949,9 @@ export default class BaseModel extends BaseClass {
         this.loadData(responseData);
         this.commitChanges();
         this.isPhantom = false;
+
         this.emit(event, responseData);
+        this.emitToBelongsStores(BaseStore.EVENT_MODELS_CHANGE, [this]);
 
         return Promise.resolve(responseData);
     }
@@ -962,6 +967,7 @@ export default class BaseModel extends BaseClass {
         this.isDeleted = true;
         this.isPhantom = true;
         this.emit(this.constructor.EVENT_DELETE);
+        this.emitToBelongsStores(BaseStore.EVENT_MODELS_REMOVED, [this]);
         return Promise.resolve(true);
     }
 
@@ -993,5 +999,37 @@ export default class BaseModel extends BaseClass {
      * */
     getData(path = '') {
         return path === '' ? this.__initialData : get(this.__initialData, path);
+    }
+
+
+    /**
+     * Link model to store
+     * @param {BaseStore} store
+     * */
+    linkToStore(store) {
+        if (false === this.isBelongToStore(store)) {
+            this.__belongsToStores.push(store);
+        }
+    }
+
+    /**
+     * Link model to store
+     * @param {BaseStore} store
+     * */
+    unlinkFromStore(store) {
+        remove(this.__belongsToStores, {id: store.id})
+    }
+
+    /**
+     * Link model to store
+     * @param {BaseStore} store
+     * */
+    isBelongToStore(store) {
+        return Boolean(find(this.__belongsToStores, {id: store.id}));
+    }
+
+
+    emitToBelongsStores(event, data) {
+        forEach(this.__belongsToStores, store => store.emit(event, data));
     }
 }

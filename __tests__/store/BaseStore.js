@@ -24,7 +24,7 @@ class PersonTestModel extends BaseModel {
         };
     }
 
-    get sumTestProperty(){
+    get sumTestProperty() {
         return 2;
     }
 }
@@ -50,10 +50,25 @@ describe('Работа с моделями', () => {
         });
 
         $store.loadModel($model);
-
     });
 
-    test('Удаление', () => {
+    test('Change belongs model from outside', (done) => {
+        const store = new PersonsTestStore({hasEmitter: true});
+        store.loadModels([{name: 'foo'}, {name: 'xoxa', age: 37}, {name: 'xoxa', age: 37}]);
+
+        const model = store.models[1];
+        model.doRequest = jest.fn();
+
+        store.on(PersonsTestStore.EVENT_MODELS_CHANGE, (modelsChanged) => {
+            expect(modelsChanged).toEqual([model]);
+            done();
+        });
+
+        model.age = 38;
+        model.save();
+    });
+
+    test('Delete', () => {
         const $store = new PersonsTestStore();
         let $model = $store.loadModel({name: 'xoxa', age: 37});
         expect($store.count).toEqual(1);
@@ -67,6 +82,22 @@ describe('Работа с моделями', () => {
         expect($store.emit).toBeCalledTimes(2);
         expect($store.emit).toHaveBeenNthCalledWith(1, $store.constructor.EVENT_MODELS_CHANGE, [$model]);
         expect($store.emit).toHaveBeenNthCalledWith(2, $store.constructor.EVENT_MODELS_REMOVED, [$model]);
+    });
+
+
+    test("Delete belongs model from outside", (done) => {
+        const store = new PersonsTestStore({hasEmitter: true});
+        store.loadModels([{name: 'foo'}, {name: 'xoxa', age: 37}, {name: 'xoxa', age: 37}]);
+
+        const model = store.models[1];
+        model.doRequest = jest.fn();
+
+        store.on(BaseStore.EVENT_MODELS_REMOVED, (models) => {
+            expect(models).toEqual([model]);
+            done();
+        });
+
+        model.delete();
     });
 
 

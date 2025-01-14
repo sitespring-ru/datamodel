@@ -247,7 +247,7 @@ describe('CRUD rest api', () => {
         expect(model).toBeInstanceOf(TestModel)
 
         store.loadModel(model)
-        expect(model.store).toBe(store)
+        expect(model.isBelongToStore(store)).toBeTruthy()
     })
 
     test('Store context with defaults', () => {
