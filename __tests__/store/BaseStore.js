@@ -59,8 +59,8 @@ describe('Работа с моделями', () => {
         const model = store.models[1];
         model.doRequest = jest.fn();
 
-        store.on(PersonsTestStore.EVENT_MODELS_CHANGE, (modelsChanged) => {
-            expect(modelsChanged).toEqual([model]);
+        store.on(PersonsTestStore.EVENT_MODEL_BELONGS_CHANGE, ({model: modelChanged}) => {
+            expect(modelChanged).toEqual(model);
             done();
         });
 
@@ -92,8 +92,8 @@ describe('Работа с моделями', () => {
         const model = store.models[1];
         model.doRequest = jest.fn();
 
-        store.on(BaseStore.EVENT_MODELS_REMOVED, (models) => {
-            expect(models).toEqual([model]);
+        store.on(BaseStore.EVENT_MODEL_BELONGS_CHANGE, ({model: modelToCompare}) => {
+            expect(modelToCompare).toEqual(model);
             done();
         });
 
@@ -119,9 +119,8 @@ describe('Работа с моделями', () => {
         expect($store.pagination.pageSize).toEqual(2);
         expect($store.pagination.pageCount).toEqual(1);
 
-        expect($store.emit).toBeCalledTimes(2);
-        expect($store.emit).toHaveBeenNthCalledWith(1, $store.constructor.EVENT_MODELS_CHANGE, modelsToRemove);
-        expect($store.emit).toHaveBeenNthCalledWith(2, $store.constructor.EVENT_MODELS_REMOVED, modelsToRemove);
+        expect($store.emit).toBeCalledTimes(1);
+        expect($store.emit).toHaveBeenNthCalledWith(1, $store.constructor.EVENT_CLEAR, modelsToRemove);
     });
 
 

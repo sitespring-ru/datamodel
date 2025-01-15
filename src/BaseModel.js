@@ -951,7 +951,7 @@ export default class BaseModel extends BaseClass {
         this.isPhantom = false;
 
         this.emit(event, responseData);
-        this.emitToBelongsStores(BaseStore.EVENT_MODELS_CHANGE, [this]);
+        this.emitToBelongsStores(BaseStore.EVENT_MODEL_BELONGS_CHANGE, {model: this});
 
         return Promise.resolve(responseData);
     }
@@ -967,7 +967,7 @@ export default class BaseModel extends BaseClass {
         this.isDeleted = true;
         this.isPhantom = true;
         this.emit(this.constructor.EVENT_DELETE);
-        this.emitToBelongsStores(BaseStore.EVENT_MODELS_REMOVED, [this]);
+        this.emitToBelongsStores(BaseStore.EVENT_MODEL_BELONGS_CHANGE, {model: this});
         return Promise.resolve(true);
     }
 

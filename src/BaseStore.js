@@ -63,6 +63,20 @@ export default class BaseStore extends BaseClass {
     static EVENT_MODELS_REMOVED = 'modelsremoved';
 
     /**
+     * Fires when belongs to this store model has been removed or saved
+     * @event BaseStore#EVENT_MODEL_BELONGS_CHANGE
+     * @param {BaseModel} model To be changed
+     * */
+    static EVENT_MODEL_BELONGS_CHANGE = 'modelbelongschange';
+
+    /**
+     * Fired when clear() method called
+     * @event BaseStore#EVENT_CLEAR
+     * @param {BaseModel[]} models has been removed
+     * */
+    static EVENT_CLEAR = 'clear';
+
+    /**
      * Событие получения данных с сервера
      * @event BaseStore#EVENT_FETCH
      * @param {AttributesMap[]} $data Объект данных
@@ -512,10 +526,19 @@ export default class BaseStore extends BaseClass {
      * @fires BaseStore#EVENT_MODELS_REMOVED
      * */
     clear() {
+        if (!this.isEmpty) {
+            this.emit(this.constructor.EVENT_CLEAR, this.models);
+        }
+        this.__internalClear();
+    }
+
+
+    /**
+     * @protected
+     * */
+    __internalClear() {
         this._isFetched = false;
         if (!this.isEmpty) {
-            this.emit(this.constructor.EVENT_MODELS_CHANGE, this.models);
-            this.emit(this.constructor.EVENT_MODELS_REMOVED, this.models);
             this._innerModels = [];
             this.__isDirty = true;
         }
@@ -611,7 +634,7 @@ export default class BaseStore extends BaseClass {
      * @return {Promise}
      * */
     async reload() {
-        this.clear();
+        this.__internalClear();
         return this.fetch();
     }
 
