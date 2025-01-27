@@ -310,7 +310,6 @@ export default class BaseModel extends BaseClass {
         /**
          * Индексированный объект ошибок
          * @type {AttributesMap}
-         * @protected
          * */
         this.errors = {};
 

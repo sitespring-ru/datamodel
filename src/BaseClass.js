@@ -20,6 +20,10 @@ export default class BaseClass {
      * @see https://github.com/developit/mitt
      * */
 
+
+    /**
+     * @return {Object} Configuration for class properties to be applied by default
+     * */
     get defaults() {
         return {
             hasEmitter: false
