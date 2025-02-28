@@ -9,7 +9,7 @@ import {
     isArray,
     isEmpty,
     isEqual,
-    isFunction, 
+    isFunction,
     isString,
     keys,
     mapValues,
@@ -408,6 +408,7 @@ export default class BaseModel extends BaseClass {
                 get() {
                     if (!this.__cachedRelations[name]) {
                         this.__cachedRelations[name] = new modelConstructor({}, {
+                            isPhantom: this.isPhantom,
                             relatedParent: this,
                             proxy: proxy || this.proxyConfig
                         });
