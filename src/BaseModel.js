@@ -9,7 +9,7 @@ import {
     isArray,
     isEmpty,
     isEqual,
-    isFunction,
+    isFunction, 
     isString,
     keys,
     mapValues,
@@ -285,7 +285,10 @@ export default class BaseModel extends BaseClass {
     constructor(attributes = {}, config = {}) {
         super(config);
 
-        this.isPhantom = true;
+        /**
+         * @type {Boolean} Wheter model assume act as phantom: not fetched from server
+         * */
+        this.isPhantom = has(config, 'isPhantom') ? config.isPhantom : true;
 
         /**
          * @type {?BaseModel} The reference on parent model during {BaseModel.__createRelation} method
