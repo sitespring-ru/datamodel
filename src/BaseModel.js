@@ -288,13 +288,13 @@ export default class BaseModel extends BaseClass {
         /**
          * @type {Boolean} Wheter model assume act as phantom: not fetched from server
          * */
-        this.isPhantom = has(config, 'isPhantom') ? config.isPhantom : true;
+        this.isPhantom = get(config, 'isPhantom', true);
 
         /**
          * @type {?BaseModel} The reference on parent model during {BaseModel.__createRelation} method
          * @see BaseModel.__createRelation
          * */
-        this.relatedParent = config.relatedParent || null;
+        this.relatedParent = get(config, 'relatedParent', null);
 
         /**
          * Сохраненные данные
@@ -420,6 +420,7 @@ export default class BaseModel extends BaseClass {
                         throw new Error(`${name} relation expect ${modelConstructor.name} instance, ${model.constructor.name} given`);
                     }
                     this.__cachedRelations[name] = model;
+                    model.relatedParent = this
                     if (foreignKey) {
                         this.setAttribute(foreignKey, model.getId());
                     }
@@ -434,6 +435,7 @@ export default class BaseModel extends BaseClass {
                 get() {
                     if (!this.__cachedRelations[name]) {
                         this.__cachedRelations[name] = new storeConstructorReal({
+                            proxy: proxy || this.proxyConfig,
                             model: modelConstructor,
                             filters: [{
                                 property: foreignKey,

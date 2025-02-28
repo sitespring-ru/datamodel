@@ -31,6 +31,17 @@ class ParentModel extends BaseModel {
                 model: ChildModelB,
                 proxy: Proxy2
             },
+            'relationC': {
+                type: 'hasMany',
+                model: ChildModelA,
+                foreignKey: 'c_id'
+            },
+            'relationD': {
+                type: 'hasMany',
+                model: ChildModelB,
+                proxy: Proxy2,
+                foreignKey: 'd_id'
+            }
         }
     }
 }
@@ -42,7 +53,17 @@ describe('Related proxies tests', () => {
     })
 
     test('Expect related model proxy to be configured from relation config', () => {
-        const model = new ParentModel({}, {proxy: Proxy2})
+        const model = new ParentModel({}, {proxy: Proxy1})
         expect(model.relationB.proxy).toBeInstanceOf(Proxy2)
+    })
+
+    test('Expect related store proxy to be inherited from parent', () => {
+        const model = new ParentModel({}, {proxy: Proxy1})
+        expect(model.relationC.proxy).toBeInstanceOf(Proxy1)
+    })
+
+    test('Expect related store proxy to be configured from relation config', () => {
+        const model = new ParentModel({}, {proxy: Proxy1})
+        expect(model.relationD.proxy).toBeInstanceOf(Proxy2)
     })
 })

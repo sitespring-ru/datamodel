@@ -108,6 +108,12 @@ export default class BaseStore extends BaseClass {
         super(config);
 
         /**
+         * @type {?BaseModel} The reference on parent model during {BaseModel.__createRelation} method
+         * @see BaseModel.__createRelation
+         * */
+        this.relatedParent = get(config, 'relatedParent', null);
+
+        /**
          * Стек хранимый моделей
          * @type {BaseModel[]}
          * @private
@@ -132,7 +138,7 @@ export default class BaseStore extends BaseClass {
          * Были ли получены данные с сервера
          * @type {Boolean}
          * */
-        this._isFetched = false;
+        this._isFetched = get(config, 'isFetched', false);
 
 
         /**
@@ -172,6 +178,14 @@ export default class BaseStore extends BaseClass {
          * */
         this.__isDirty = false;
     }
+
+    /**
+     * @type {Boolean} Whether the model act as another model relation
+     * */
+    get isRelated() {
+        return Boolean(this.relatedParent)
+    }
+
 
     get defaults() {
         return {
