@@ -1,9 +1,11 @@
 import {
     difference,
-    every, find,
+    every,
+    find,
     forEach,
     get,
-    has, head,
+    has,
+    head,
     isArray,
     isEmpty,
     isEqual,
@@ -12,7 +14,8 @@ import {
     keys,
     mapValues,
     pick,
-    reduce, remove,
+    reduce,
+    remove,
     unset,
     values
 } from "lodash-es";
@@ -51,6 +54,7 @@ export default class BaseModel extends BaseClass {
      * @property {?typeof BaseStore} store Конструктор Хранилища в случае связи hasMany или по умолчанию будет использовано BaseStore
      * @property {?String} foreignKey Внешний ключ для сортировки Хранилища
      * @property {("hasOne"|"hasMany")} type Тип связи
+     * @property {?BaseProxy} proxy Proxy to be configured during relation creation or parent will be used
      * */
 
     /**
@@ -284,6 +288,12 @@ export default class BaseModel extends BaseClass {
         this.isPhantom = true;
 
         /**
+         * @type {?BaseModel} The reference on parent model during {BaseModel.__createRelation} method
+         * @see BaseModel.__createRelation
+         * */
+        this.relatedParent = config.relatedParent || null;
+
+        /**
          * Сохраненные данные
          * @type {AttributesMap}
          * @protected
@@ -345,6 +355,13 @@ export default class BaseModel extends BaseClass {
 
 
     /**
+     * @type {Boolean} Whether the model act as another model relation
+     * */
+    get isRelated() {
+        return Boolean(this.relatedParent)
+    }
+
+    /**
      * Создаем геттеры и сеттеры для аттрибутов
      * @protected
      * */
@@ -381,13 +398,16 @@ export default class BaseModel extends BaseClass {
             return;
         }
 
-        const {type, model: modelConstructor, foreignKey, store: storeConstructor} = config;
+        const {type, model: modelConstructor, foreignKey, store: storeConstructor, proxy} = config;
 
         if (type === 'hasOne') {
             Object.defineProperty(this, name, {
                 get() {
                     if (!this.__cachedRelations[name]) {
-                        this.__cachedRelations[name] = new modelConstructor();
+                        this.__cachedRelations[name] = new modelConstructor({}, {
+                            relatedParent: this,
+                            proxy: proxy || this.proxyConfig
+                        });
                     }
                     return this.__cachedRelations[name];
                 },

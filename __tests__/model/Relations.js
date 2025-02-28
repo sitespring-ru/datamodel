@@ -5,7 +5,8 @@
  */
 import BaseModel from "../../src/BaseModel.js";
 import BaseStore from "../../src/BaseStore.js";
-import {expect, jest} from '@jest/globals'
+import {expect, jest, test} from '@jest/globals'
+import {expectedError} from "@babel/core/lib/errors/rewrite-stack-trace.js";
 
 // Эмулируем модуль целиком
 jest.mock('axios');
@@ -92,6 +93,14 @@ class Book extends BaseModel {
         }
     }
 }
+
+describe('Referencing between related models', ()=>{
+    test('Expected referenced model know about referencing parent', ()=>{
+        const book = new Book();
+        expect(book.author.isRelated).toBeTruthy();
+        expect(book.author.relatedParent).toEqual(book);
+    })
+})
 
 describe('Магические геттеры связей', () => {
     test('Данные из аттрибутов', () => {
