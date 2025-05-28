@@ -410,7 +410,7 @@ export default class BaseModel extends BaseClass {
                         this.__cachedRelations[name] = new modelConstructor({}, {
                             isPhantom: this.isPhantom,
                             relatedParent: this,
-                            proxy: proxy || this.proxyConfig
+                            proxy: proxy || this.proxy.constructor
                         });
                     }
                     return this.__cachedRelations[name];
@@ -435,7 +435,7 @@ export default class BaseModel extends BaseClass {
                 get() {
                     if (!this.__cachedRelations[name]) {
                         this.__cachedRelations[name] = new storeConstructorReal({
-                            proxy: proxy || this.proxyConfig,
+                            proxy: proxy || this.proxy.constructor,
                             model: modelConstructor,
                             filters: [{
                                 property: foreignKey,
