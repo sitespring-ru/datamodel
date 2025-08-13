@@ -663,7 +663,7 @@ export default class BaseModel extends BaseClass {
      * */
     resetAttributes(names = []) {
         if (!isEmpty(names)) {
-            const attrs = pick(names, this.__initialData);
+            const attrs = pick(this.__initialData, names);
             this.setAttributes(attrs);
         } else {
             this.setAttributes(this.__initialData);
