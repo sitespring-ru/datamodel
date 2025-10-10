@@ -599,6 +599,17 @@ export default class BaseModel extends BaseClass {
 
 
     /**
+     * Mark attribute as dirty
+     * @param {string} attrName The name of attribute to be marked as dirty
+     * */
+    markAttributeDirty(attrName) {
+        Object.assign(this._dirtyAttributes, {
+            [attrName]: this.getAttribute(attrName)
+        })
+    }
+
+
+    /**
      * Shortland helper for [this.getSavedAttributes] method
      * to use in reactive views directly
      * @return {object}

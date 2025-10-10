@@ -1,6 +1,6 @@
 # Sitespring datamodel
 
-Framework and environment agnostic data management base classes, supporting
+Framework and environment agnostic data model management base classes, supporting
 
 - fields validation
 - fetching
