@@ -192,6 +192,15 @@ export default class BaseModel extends BaseClass {
 
 
     /**
+     * The fields name wich should be sended in each request regardless there are dirty or not
+     * @return {String[]}
+     * */
+    get alwaysDirtyFields() {
+        return []
+    }
+
+
+    /**
      * Массив полей, которые могут быть изменены с помощью метода setAttributes
      * */
     get safeAttributes() {
@@ -632,10 +641,21 @@ export default class BaseModel extends BaseClass {
 
 
     /**
-     * Load data to model with relations data and without triggering change event
-     * @param {Object} data
+     * Parse rawData from raw outside (e.g. proxy response) to inner fields map
+     * @param {mixed} rawData
+     * @return {Object}
      * */
-    loadData(data) {
+    readData(rawData) {
+        return rawData
+    }
+
+
+    /**
+     * Load data to model with relations data and without triggering change event
+     * @param {Object} rawData
+     * */
+    loadData(rawData) {
+        const data = this.readData(rawData)
         const attrs = pick(data, keys(this.fields));
         this.__innerSetAttributes(attrs);
 
@@ -964,14 +984,68 @@ export default class BaseModel extends BaseClass {
         })
     }
 
+    /**
+     * Wheter model should be sended to server within save action
+     * @return {Boolean}
+     * */
+    getIsShouldBeSaved(withRelative = false) {
+        return this.alwaysDirtyFields.length > 0
+            || this.isPhantom
+            || this.isDirty
+            || (withRelative && this.isDirtyWithRelated)
+    }
+
+
+    /**
+     * Mark model as phantom meaning save() request will provide create action
+     * */
+    markAsPhantom() {
+        this.isPhantom = true
+    }
+
+    /**
+     * Mark model as real meaning save() request will provide edit action
+     * */
+    markAsReal() {
+        this.isPhantom = false
+    }
+
+
+    /**
+     * Mark model as deleted meaning no model exists on server side
+     * */
+    markAsDeleted() {
+        this.isDeleted = true
+        this.isPhantom = true
+    }
+
+
+    /**
+     * Before save logic should return true or error message to be rejected with
+     * @return {Promise<boolean|string>}
+     * */
+    async beforeSave() {
+        return true
+    }
+
+    /**
+     * After save logic
+     * */
+    afterSave() {
+
+    }
+
 
     /**
      * Save model to server
      * @param {boolean} withRelative Whether to collect relative data as submitValues in request
      * */
     async save(withRelative = false) {
-        if (!this.isPhantom &&
-            ((withRelative && !this.isDirtyWithRelated) || (!withRelative && !this.isDirty))) {
+        const beforeSaveErr = await this.beforeSave()
+        if (true !== beforeSaveErr) {
+            return Promise.reject(beforeSaveErr)
+        }
+        if (!this.getIsShouldBeSaved()) {
             return Promise.resolve({});
         }
 
@@ -979,16 +1053,20 @@ export default class BaseModel extends BaseClass {
         const method = this.isPhantom ? this.verbs['create'] : this.verbs['save'];
         const attrsToBeSend = this.isPhantom ? undefined : keys(this._dirtyAttributes);
         const data = this.getSubmitValues(attrsToBeSend, withRelative);
+        if (this.alwaysDirtyFields.length > 0) {
+            Object.assign(data, this.getSubmitValues(this.alwaysDirtyFields))
+        }
         const event = this.isPhantom ? this.constructor.EVENT_CREATE : this.constructor.EVENT_SAVE;
         const responseData = await this.doRequest({url, method, data});
 
         this.loadData(responseData);
         this.commitChanges();
-        this.isPhantom = false;
+        this.markAsReal();
 
         this.emit(event, responseData);
         this.emitToBelongsStores(BaseStore.EVENT_MODEL_BELONGS_CHANGE, {model: this});
 
+        this.afterSave()
         return Promise.resolve(responseData);
     }
 
@@ -1000,8 +1078,7 @@ export default class BaseModel extends BaseClass {
         const url = this.urls['delete'];
         const method = this.verbs['delete'];
         await this.doRequest({url, method});
-        this.isDeleted = true;
-        this.isPhantom = true;
+        this.markAsDeleted()
         this.emit(this.constructor.EVENT_DELETE);
         this.emitToBelongsStores(BaseStore.EVENT_MODEL_BELONGS_CHANGE, {model: this});
         return Promise.resolve(true);
